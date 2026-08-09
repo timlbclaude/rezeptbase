@@ -56,7 +56,7 @@ async function fetchYouTube(url: string, id: string) {
     }
   }
 
-  // 0) Offizielle YouTube Data API (zuverlaessig, benoetigt Secret YOUTUBE_API_KEY)
+  // 0) Offizielle YouTube Data API (zuverlässig, benötigt Secret YOUTUBE_API_KEY)
   const ytKey = Deno.env.get("YOUTUBE_API_KEY");
   if (ytKey) {
     try {
@@ -294,6 +294,45 @@ async function extractWithClaude(content: string): Promise<any> {
   return toolUse.input;
 }
 
+// Fallback: Rezept per Websuche finden (wenn Video-Beschreibung kein Rezept enthält)
+async function extractViaWebSearch(content: string): Promise<any | null> {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) return null;
+  const model = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-5";
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 6000,
+      tools: [
+        { type: "web_search_20250305", name: "web_search", max_uses: 3 },
+        RECIPE_TOOL,
+      ],
+      messages: [{
+        role: "user",
+        content:
+          "Das folgende Kochvideo enthält das Rezept nur gesprochen im Video, nicht als Text. " +
+          "Suche im Web nach genau diesem Rezept (bevorzugt vom selben Koch/Kanal, sonst ein sehr ähnliches klassisches Rezept für dieses Gericht). " +
+          "Übersetze alles ins Deutsche, Mengen als Zahlen. " +
+          "Rufe am Ende ZWINGEND das Tool rezept_speichern mit dem vollständigen Rezept auf. " +
+          "Nur wenn du wirklich kein passendes Rezept findest, setze erkannt=false.\n\n---\n\n" +
+          content.slice(0, 5000),
+      }],
+    }),
+  });
+
+  if (!res.ok) return null;
+  const data = await res.json();
+  const toolUse = (data.content ?? []).find((b: any) => b.type === "tool_use" && b.name === "rezept_speichern");
+  return toolUse ? toolUse.input : null;
+}
+
 // ---------- Handler ----------
 
 Deno.serve(async (req) => {
@@ -335,7 +374,14 @@ Deno.serve(async (req) => {
       }, 422);
     }
 
-    const recipe = await extractWithClaude(source.content);
+    let recipe = await extractWithClaude(source.content);
+    if (recipe.erkannt === false && (source.source_type === "youtube" || source.source_type === "short")) {
+      const found = await extractViaWebSearch(source.content);
+      if (found && found.erkannt !== false) {
+        recipe = found;
+        recipe.description = ((recipe.description ?? "") + " (Rezept per Websuche zum Video gefunden – bitte prüfen.)").trim();
+      }
+    }
     if (recipe.erkannt === false) {
       return json({
         error: "In dieser Quelle wurde kein Rezept erkannt. Bitte prüfe den Link oder füge das Rezept als Text ein.",
