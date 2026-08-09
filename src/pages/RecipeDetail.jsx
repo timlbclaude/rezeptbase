@@ -40,6 +40,12 @@ function formatScaled(ing, factor) {
   return formatNumber(Math.round(n * 100) / 100)
 }
 
+function formatDate(d) {
+  if (!d) return ''
+  const [y, m, day] = d.split('-')
+  return `${day}.${m}.${y}`
+}
+
 export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
   const [recipe, setRecipe] = useState(null)
   const [ingredients, setIngredients] = useState([])
@@ -47,6 +53,9 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [checked, setChecked] = useState({})
   const [servings, setServings] = useState(4)
+  const [notes, setNotes] = useState('')
+  const [notesSaved, setNotesSaved] = useState(true)
+  const [cartMessage, setCartMessage] = useState(null)
 
   useEffect(() => {
     Promise.all([
@@ -56,13 +65,69 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
       setRecipe(r.data)
       setIngredients(i.data ?? [])
       if (r.data?.base_servings) setServings(r.data.base_servings)
+      setNotes(r.data?.notes ?? '')
       setLoading(false)
     })
   }, [recipeId])
 
-  async function handleDelete() {
-    await supabase.from('recipes').delete().eq('id', recipeId)
-    onDeleted()
+  async function patch(fields) {
+    setRecipe((r) => ({ ...r, ...fields }))
+    await supabase.from('recipes').update(fields).eq('id', recipeId)
+  }
+
+  async function toggleStatus() {
+    if (recipe.status === 'gekocht') {
+      await patch({ status: 'zum_ausprobieren' })
+    } else {
+      await patch({ status: 'gekocht', last_cooked_at: new Date().toISOString().slice(0, 10) })
+    }
+  }
+
+  async function saveNotes() {
+    await patch({ notes: notes.trim() || null })
+    setNotesSaved(true)
+  }
+
+  async function addToShoppingList() {
+    setCartMessage('…')
+    const factor = servings / (recipe.base_servings || 4)
+    const { data: existing } = await supabase.from('shopping_list').select('*')
+    const list = existing ?? []
+    let added = 0
+    for (const ing of ingredients) {
+      if (!ing.name?.trim()) continue
+      const amount =
+        ing.amount === null || ing.amount === undefined
+          ? null
+          : ing.is_scalable
+            ? Math.round(Number(ing.amount) * factor * 100) / 100
+            : Number(ing.amount)
+      const match = list.find(
+        (x) =>
+          !x.checked &&
+          x.ingredient_name.toLowerCase().trim() === ing.name.toLowerCase().trim() &&
+          (x.unit ?? '') === (ing.unit ?? '') &&
+          x.amount !== null &&
+          amount !== null,
+      )
+      if (match) {
+        await supabase
+          .from('shopping_list')
+          .update({ amount: Math.round((Number(match.amount) + amount) * 100) / 100 })
+          .eq('id', match.id)
+        match.amount = Number(match.amount) + amount
+      } else {
+        await supabase.from('shopping_list').insert({
+          ingredient_name: ing.name,
+          amount,
+          unit: ing.unit ?? null,
+          source_recipe_id: recipeId,
+        })
+      }
+      added++
+    }
+    setCartMessage(`✓ ${added} Zutaten (für ${servings} Portionen) auf der Einkaufsliste`)
+    setTimeout(() => setCartMessage(null), 4000)
   }
 
   if (loading) {
@@ -77,6 +142,7 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
   const factor = servings / base
   const sliderMax = Math.max(12, base)
   const isScaled = servings !== base
+  const cooked = recipe.status === 'gekocht'
 
   return (
     <div className="mx-auto max-w-2xl pb-16">
@@ -96,17 +162,58 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
 
       <div className="px-4 pt-4">
         <button onClick={onBack} className="text-sm text-brand-600 font-semibold mb-2">← Zurück</button>
-        <h1 className="text-2xl font-bold text-stone-900">{recipe.title}</h1>
+
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="text-2xl font-bold text-stone-900">{recipe.title}</h1>
+          <button
+            onClick={() => patch({ is_favorite: !recipe.is_favorite })}
+            className="shrink-0 text-2xl pt-0.5"
+            aria-label="Favorit"
+          >
+            {recipe.is_favorite ? '❤️' : '🤍'}
+          </button>
+        </div>
         {recipe.description && <p className="text-stone-600 mt-1">{recipe.description}</p>}
 
-        <div className="flex flex-wrap gap-2 mt-3 text-xs">
-          {recipe.category && <span className="rounded-full bg-brand-100 text-brand-700 px-3 py-1 font-semibold">{recipe.category}</span>}
+        <div className="flex flex-wrap gap-2 mt-3 text-xs items-center">
+          <span className={`rounded-full px-3 py-1 font-semibold ${cooked ? 'bg-brand-100 text-brand-700' : 'bg-amber-100 text-amber-700'}`}>
+            {cooked ? '✅ Schon gekocht' : '🌱 Zum Ausprobieren'}
+          </span>
+          {recipe.category && <span className="rounded-full bg-stone-100 text-stone-600 px-3 py-1">{recipe.category}</span>}
           {recipe.cuisine && <span className="rounded-full bg-stone-100 text-stone-600 px-3 py-1">{recipe.cuisine}</span>}
           {time > 0 && <span className="rounded-full bg-stone-100 text-stone-600 px-3 py-1">⏱ {time} Min</span>}
         </div>
 
+        {/* Kochstatus + Bewertung */}
+        <div className="mt-4 rounded-2xl bg-white border border-stone-200 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <button
+              onClick={toggleStatus}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold ${cooked ? 'border border-stone-300 text-stone-600' : 'bg-brand-600 text-white active:bg-brand-700'}`}
+            >
+              {cooked ? '↩ Zurück auf „Zum Ausprobieren“' : '✅ Als gekocht markieren'}
+            </button>
+            {recipe.last_cooked_at && (
+              <span className="text-xs text-stone-400">Zuletzt gekocht: {formatDate(recipe.last_cooked_at)}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-stone-500 mr-2">Bewertung:</span>
+            {[1, 2, 3, 4, 5].map((s) => (
+              <button
+                key={s}
+                onClick={() => patch({ rating: recipe.rating === s ? null : s })}
+                className="text-xl"
+                aria-label={`${s} Sterne`}
+              >
+                {recipe.rating >= s ? '⭐' : '☆'}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Portionsrechner */}
-        <div className="mt-5 rounded-2xl bg-white border border-stone-200 p-4">
+        <div className="mt-4 rounded-2xl bg-white border border-stone-200 p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="font-semibold text-stone-900">
               👥 {servings} {servings === 1 ? 'Portion' : 'Portionen'}
@@ -143,7 +250,15 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
           </div>
         </div>
 
-        <h2 className="font-bold text-stone-900 mt-6 mb-2">Zutaten</h2>
+        <div className="flex items-center justify-between mt-6 mb-2">
+          <h2 className="font-bold text-stone-900">Zutaten</h2>
+          <button onClick={addToShoppingList} className="text-sm font-semibold text-brand-600">
+            🛒 Auf die Einkaufsliste
+          </button>
+        </div>
+        {cartMessage && (
+          <p className="text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-lg px-3 py-2 mb-2">{cartMessage}</p>
+        )}
         <ul className="space-y-1.5">
           {ingredients.map((ing) => (
             <li key={ing.id}>
@@ -159,7 +274,6 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
                     {formatScaled(ing, factor)} {ing.unit ?? ''}
                   </strong>{' '}
                   {ing.name}
-                  {!ing.is_scalable && ing.amount === null && ''}
                 </span>
               </label>
             </li>
@@ -183,6 +297,20 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
           ))}
         </ol>
 
+        <h2 className="font-bold text-stone-900 mt-6 mb-2">Meine Notizen</h2>
+        <textarea
+          rows={3}
+          placeholder="z.B. weniger Salz nehmen, Beilage: Reis …"
+          value={notes}
+          onChange={(e) => { setNotes(e.target.value); setNotesSaved(false) }}
+          className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"
+        />
+        {!notesSaved && (
+          <button onClick={saveNotes} className="mt-1 text-sm font-semibold text-brand-600">
+            Notizen speichern
+          </button>
+        )}
+
         {recipe.source_url && (
           <p className="mt-6 text-sm">
             <a href={recipe.source_url} target="_blank" rel="noreferrer" className="text-brand-600 underline">
@@ -195,7 +323,7 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
           {confirmDelete ? (
             <div className="flex items-center gap-3">
               <span className="text-sm text-stone-600">Wirklich löschen?</span>
-              <button onClick={handleDelete} className="text-sm font-semibold text-red-600">Ja, löschen</button>
+              <button onClick={async () => { await supabase.from('recipes').delete().eq('id', recipeId); onDeleted() }} className="text-sm font-semibold text-red-600">Ja, löschen</button>
               <button onClick={() => setConfirmDelete(false)} className="text-sm text-stone-500">Abbrechen</button>
             </div>
           ) : (

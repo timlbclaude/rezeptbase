@@ -65,3 +65,6 @@ create policy "own ingredients" on public.ingredients
 
 create policy "own shopping list" on public.shopping_list
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Phase 4: Kochstatus
+alter table public.recipes add column if not exists status text not null default 'zum_ausprobieren' check (status in ('zum_ausprobieren','gekocht'));
