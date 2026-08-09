@@ -39,41 +39,108 @@ async function fetchYouTube(url: string, id: string) {
     }
   } catch (_) { /* optional */ }
 
-  try {
-    const page = await fetch(`https://www.youtube.com/watch?v=${id}&hl=de`, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-        "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
-        "Cookie": "CONSENT=YES+1; SOCS=CAI",
-      },
-    });
-    const html = await page.text();
-
-    const descMatch = html.match(/"shortDescription":"((?:[^"\\]|\\.)*)"/);
-    if (descMatch) {
-      description = JSON.parse('"' + descMatch[1] + '"');
+  async function loadTranscript(tracks: any[]) {
+    const pick =
+      tracks.find((t: any) => t.languageCode?.startsWith("de")) ||
+      tracks.find((t: any) => t.languageCode?.startsWith("en")) ||
+      tracks[0];
+    if (!pick?.baseUrl) return;
+    const tr = await fetch(pick.baseUrl.replace(/\\u0026/g, "&") + "&fmt=json3");
+    if (tr.ok) {
+      const tj = await tr.json();
+      transcript = (tj.events ?? [])
+        .flatMap((e: any) => (e.segs ?? []).map((s: any) => s.utf8))
+        .join("")
+        .replace(/\n+/g, " ")
+        .trim();
     }
+  }
 
-    const tracksMatch = html.match(/"captionTracks":(\[.*?\])/);
-    if (tracksMatch) {
-      const tracks = JSON.parse(tracksMatch[1]);
-      const pick =
-        tracks.find((t: any) => t.languageCode?.startsWith("de")) ||
-        tracks.find((t: any) => t.languageCode?.startsWith("en")) ||
-        tracks[0];
-      if (pick?.baseUrl) {
-        const tr = await fetch(pick.baseUrl.replace(/\\u0026/g, "&") + "&fmt=json3");
-        if (tr.ok) {
-          const tj = await tr.json();
-          transcript = (tj.events ?? [])
-            .flatMap((e: any) => (e.segs ?? []).map((s: any) => s.utf8))
-            .join("")
-            .replace(/\n+/g, " ")
-            .trim();
+  // 0) Offizielle YouTube Data API (zuverlaessig, benoetigt Secret YOUTUBE_API_KEY)
+  const ytKey = Deno.env.get("YOUTUBE_API_KEY");
+  if (ytKey) {
+    try {
+      const yt = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${id}&key=${ytKey}`,
+      );
+      if (yt.ok) {
+        const j = await yt.json();
+        const sn = j.items?.[0]?.snippet;
+        if (sn) {
+          title = sn.title ?? title;
+          author = sn.channelTitle ?? author;
+          description = sn.description ?? "";
         }
       }
-    }
-  } catch (_) { /* Transkript ist optional */ }
+    } catch (_) { /* weiter mit anderen Strategien */ }
+  }
+
+  // 1) InnerTube-API mit mehreren Clients (funktioniert serverseitig oft besser als die Watch-Seite)
+  const clients = [
+    { clientName: "IOS", clientVersion: "19.09.3", deviceModel: "iPhone14,3", ua: "com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)" },
+    { clientName: "ANDROID", clientVersion: "19.09.37", androidSdkVersion: 30, ua: "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip" },
+  ];
+  for (const c of clients) {
+    if (description) break;
+    try {
+      const it = await fetch(
+        "https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "User-Agent": c.ua },
+          body: JSON.stringify({
+            context: { client: { ...c, ua: undefined, hl: "de" } },
+            videoId: id,
+            contentCheckOk: true,
+            racyCheckOk: true,
+          }),
+        },
+      );
+      if (it.ok) {
+        const j = await it.json();
+        title = title || j.videoDetails?.title || "";
+        author = author || j.videoDetails?.author || "";
+        description = j.videoDetails?.shortDescription ?? "";
+        const tracks = j.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
+        if (tracks.length && !transcript) await loadTranscript(tracks);
+      }
+    } catch (_) { /* nächster Client */ }
+  }
+
+  // 2) Fallback: Watch-Seite scrapen
+  if (!description && !transcript) {
+    try {
+      const page = await fetch(`https://www.youtube.com/watch?v=${id}&hl=de`, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+          "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
+          "Cookie": "CONSENT=YES+1; SOCS=CAI",
+        },
+      });
+      const html = await page.text();
+
+      const descMatch = html.match(/"shortDescription":"((?:[^"\\]|\\.)*)"/);
+      if (descMatch) {
+        description = JSON.parse('"' + descMatch[1] + '"');
+      }
+
+      const tracksMatch = html.match(/"captionTracks":(\[.*?\])/);
+      if (tracksMatch) await loadTranscript(JSON.parse(tracksMatch[1]));
+    } catch (_) { /* Transkript ist optional */ }
+  }
+
+  // 3) Letzte Stufe: Lese-Proxy (rendert die Seite und liefert Text zurück)
+  if (!description && !transcript) {
+    try {
+      const jr = await fetch(`https://r.jina.ai/https://www.youtube.com/watch?v=${id}`, {
+        headers: { "X-Return-Format": "text" },
+      });
+      if (jr.ok) {
+        const text = (await jr.text()).slice(0, 20000);
+        if (text.length > 200) description = "SEITENINHALT (gerendert):\n" + text;
+      }
+    } catch (_) { /* dann bleibt nur der manuelle Weg */ }
+  }
 
   const content = [
     title && `VIDEOTITEL: ${title}`,
@@ -273,6 +340,7 @@ Deno.serve(async (req) => {
       return json({
         error: "In dieser Quelle wurde kein Rezept erkannt. Bitte prüfe den Link oder füge das Rezept als Text ein.",
         needs_manual: true,
+        debug_content: source.content.slice(0, 500),
       }, 422);
     }
 
