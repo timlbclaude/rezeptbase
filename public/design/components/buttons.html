@@ -1,0 +1,39 @@
+<!-- @dsCard group="Komponenten" -->
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Buttons &amp; Chips</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--brand-100:#e0eadb;--brand-700:#314f2c;--brand-800:#294025;--accent-50:#fbf1ec;--accent-200:#ecbca4;--accent-500:#c25a33;--paper:#f7f4ee;--card:#fffdf9;--ink-100:#efeadf;--ink-200:#e5dfd2;--ink-400:#a49a85;--ink-500:#7c745f;--ink-700:#4a443a;--ink-900:#211d17;--try-100:#fdf0d7;--try-700:#92600e;--shadow:0 1px 2px rgb(33 29 23/.04),0 4px 16px rgb(33 29 23/.06);--float:0 4px 12px rgb(33 29 23/.10),0 12px 32px rgb(33 29 23/.14)}
+*{box-sizing:border-box;margin:0}body{background:var(--paper);font-family:Inter,sans-serif;padding:24px;color:var(--ink-900)}
+.label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400);margin:18px 0 8px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{font:inherit;border:0;cursor:pointer}
+.primary{background:var(--brand-700);color:var(--paper);font-weight:600;border-radius:12px;padding:12px 20px;box-shadow:var(--shadow)}
+.secondary{background:var(--card);color:var(--ink-700);font-weight:600;border-radius:12px;padding:12px 20px;border:1px solid var(--ink-200)}
+.danger{background:var(--accent-500);color:#fff;font-weight:600;border-radius:12px;padding:10px 16px;font-size:14px;box-shadow:var(--shadow)}
+.fab{display:inline-flex;align-items:center;gap:8px;background:var(--brand-700);color:var(--paper);font-weight:600;border-radius:999px;padding:14px 24px 14px 20px;box-shadow:var(--float)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:8px 16px;font-size:14px;font-weight:600;border:1px solid var(--ink-200);background:var(--card);color:var(--ink-700)}
+.chip.active{background:var(--brand-700);border-color:var(--brand-700);color:var(--paper);box-shadow:var(--shadow)}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:600}
+.badge.try{background:var(--try-100);color:var(--try-700)}
+.badge.done{background:var(--brand-100);color:var(--brand-700)}
+svg{flex:none}
+</style></head><body>
+<p class="label" style="margin-top:0">Aktionen</p>
+<div class="row">
+<button class="primary">Rezept speichern</button>
+<button class="secondary">Abbrechen</button>
+<button class="danger">Kochmodus</button>
+<button class="fab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg>Rezept importieren</button>
+</div>
+<p class="label">Filter-Chips (Status-Tabs)</p>
+<div class="row">
+<span class="chip active">Alle</span>
+<span class="chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10M10 20c5.5-2.5.8-6.4 3-10"/></svg>Zum Ausprobieren</span>
+<span class="chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>Gekocht</span>
+</div>
+<p class="label">Status-Badges</p>
+<div class="row">
+<span class="badge try">🌿 Zum Ausprobieren</span>
+<span class="badge done">Gekocht</span>
+</div>
+</body></html>

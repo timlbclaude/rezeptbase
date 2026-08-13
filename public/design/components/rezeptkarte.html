@@ -1,0 +1,47 @@
+<!-- @dsCard group="Komponenten" -->
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Rezeptkarte</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--brand-700:#314f2c;--accent-500:#c25a33;--paper:#f7f4ee;--card:#fffdf9;--ink-100:#efeadf;--ink-200:#e5dfd2;--ink-500:#7c745f;--ink-900:#211d17;--try-700:#92600e;--shadow:0 1px 2px rgb(33 29 23/.04),0 4px 16px rgb(33 29 23/.06)}
+*{box-sizing:border-box;margin:0}body{background:var(--paper);font-family:Inter,sans-serif;padding:24px;color:var(--ink-900)}
+.grid{display:grid;grid-template-columns:repeat(2,180px);gap:16px}
+.rcard{background:var(--card);border:1px solid var(--ink-100);border-radius:24px;overflow:hidden;box-shadow:var(--shadow)}
+.img{position:relative;height:110px}
+.img>.ph{position:absolute;inset:0}
+.img .grad{position:absolute;inset:auto 0 0 0;height:48px;background:linear-gradient(to top,rgb(33 29 23/.3),transparent)}
+.chipS{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:600;backdrop-filter:blur(4px)}
+.chipS.try{background:rgb(255 253 249/.9);color:var(--try-700)}
+.chipS.done{background:rgb(49 79 44/.9);color:var(--paper)}
+.heart{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:999px;background:rgb(255 253 249/.9);display:grid;place-content:center;color:var(--accent-500)}
+.body{padding:14px}
+.title{font-weight:600;font-size:14px;line-height:1.35}
+.meta{display:flex;gap:10px;align-items:center;font-size:11px;color:var(--ink-500);margin-top:6px}
+.meta .star{color:#eab308;font-weight:600;display:inline-flex;align-items:center;gap:2px}
+svg{flex:none}
+</style></head><body>
+<div class="grid">
+  <div class="rcard">
+    <div class="img">
+      <div class="ph" style="background:linear-gradient(135deg,#d98e4a,#a84a28)"></div>
+      <div class="grad"></div>
+      <span class="chipS done"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>Gekocht</span>
+      <span class="heart"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg></span>
+    </div>
+    <div class="body">
+      <p class="title">Original Butter Chicken (Murgh Makhni)</p>
+      <div class="meta"><span>Hauptgericht</span><span>⏱ 40 Min</span><span class="star">★ 4</span></div>
+    </div>
+  </div>
+  <div class="rcard">
+    <div class="img">
+      <div class="ph" style="background:linear-gradient(135deg,#9dbb90,#517d45)"></div>
+      <div class="grad"></div>
+      <span class="chipS try"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10M10 20c5.5-2.5.8-6.4 3-10"/></svg>Ausprobieren</span>
+    </div>
+    <div class="body">
+      <p class="title">Frühlingspasta mit Bundzwiebelsauce</p>
+      <div class="meta"><span>Hauptgericht</span><span>⏱ 30 Min</span></div>
+    </div>
+  </div>
+</div>
+</body></html>

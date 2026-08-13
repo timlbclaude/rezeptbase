@@ -1,18 +1,120 @@
 @import "tailwindcss";
 
+/*
+  Rezeptbase Design System — "Herbes & Terrakotta"
+  Warme, editoriale Food-Ästhetik: Creme-Grund, tiefes Kräutergrün,
+  Terrakotta-Akzent, Fraunces für Display, Inter für UI.
+*/
+
 @theme {
-  --color-brand-50: #f0fdf4;
-  --color-brand-100: #dcfce7;
-  --color-brand-500: #22c55e;
-  --color-brand-600: #16a34a;
-  --color-brand-700: #15803d;
+  /* Marke: tiefes Kräutergrün */
+  --color-brand-50: #f2f6f0;
+  --color-brand-100: #e0eadb;
+  --color-brand-200: #c3d6b9;
+  --color-brand-300: #9dbb90;
+  --color-brand-400: #729b64;
+  --color-brand-500: #517d45;
+  --color-brand-600: #3d6335;
+  --color-brand-700: #314f2c;
+  --color-brand-800: #294025;
+  --color-brand-900: #22351f;
+
+  /* Akzent: Terrakotta */
+  --color-accent-50: #fbf1ec;
+  --color-accent-100: #f6ded2;
+  --color-accent-200: #ecbca4;
+  --color-accent-300: #e09571;
+  --color-accent-400: #d3714a;
+  --color-accent-500: #c25a33;
+  --color-accent-600: #a84a28;
+  --color-accent-700: #873b22;
+  --color-accent-800: #6e3220;
+  --color-accent-900: #5b2b1d;
+
+  /* Warme Neutrale (Papier & Tinte) */
+  --color-paper: #f7f4ee;
+  --color-card: #fffdf9;
+  --color-ink-900: #211d17;
+  --color-ink-700: #4a443a;
+  --color-ink-500: #7c745f;
+  --color-ink-400: #a49a85;
+  --color-ink-300: #cfc7b4;
+  --color-ink-200: #e5dfd2;
+  --color-ink-100: #efeadf;
+
+  /* Status */
+  --color-try-100: #fdf0d7;
+  --color-try-700: #92600e;
+
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card: 0 1px 2px rgb(33 29 23 / 0.04), 0 4px 16px rgb(33 29 23 / 0.06);
+  --shadow-float: 0 4px 12px rgb(33 29 23 / 0.10), 0 12px 32px rgb(33 29 23 / 0.14);
 }
 
 html {
   -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
 }
 
 body {
-  @apply bg-stone-50 text-stone-800 antialiased;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  @apply bg-paper text-ink-900 antialiased;
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv11";
 }
+
+.font-display {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 60, "WONK" 0;
+}
+
+/* Sanftes Einblenden von Ansichten */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise { animation: rise-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Skeleton-Schimmer */
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(100deg, #efeadf 40%, #f7f3ea 50%, #efeadf 60%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* Eigene Checkbox */
+.checkbox {
+  @apply appearance-none shrink-0 w-5 h-5 rounded-md border-2 border-ink-300 bg-card grid place-content-center transition-colors duration-150 cursor-pointer;
+}
+.checkbox:checked {
+  @apply bg-brand-600 border-brand-600;
+}
+.checkbox:checked::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background: white;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+/* Slider */
+input[type="range"] {
+  @apply appearance-none h-1.5 rounded-full bg-ink-200 cursor-pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  @apply appearance-none w-6 h-6 rounded-full bg-brand-600 border-4 border-card;
+  box-shadow: 0 1px 4px rgb(33 29 23 / 0.25);
+}
+input[type="range"]::-moz-range-thumb {
+  @apply w-5 h-5 rounded-full bg-brand-600 border-4 border-card;
+  box-shadow: 0 1px 4px rgb(33 29 23 / 0.25);
+}
+
+/* Ruhigere Scrollbars in Listen */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

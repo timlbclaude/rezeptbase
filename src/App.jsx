@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react'
 import { supabase, isConfigured } from './lib/supabase.js'
 import Login from './pages/Login.jsx'
 import Recipes from './pages/Recipes.jsx'
+import Icon from './components/Icon.jsx'
+
+export function Logo({ size = 40 }) {
+  return (
+    <span
+      className="inline-grid place-content-center rounded-2xl bg-gradient-to-br from-brand-600 to-brand-900 text-paper shadow-card"
+      style={{ width: size, height: size }}
+    >
+      <Icon name="chefHat" size={size * 0.55} strokeWidth={1.7} />
+    </span>
+  )
+}
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -26,11 +38,10 @@ export default function App() {
     return (
       <div className="min-h-svh flex items-center justify-center p-6">
         <div className="text-center max-w-sm">
-          <p className="text-4xl mb-3">🍳</p>
-          <h1 className="text-xl font-bold mb-2">Rezeptbase</h1>
-          <p className="text-stone-500">
-            Die App ist noch nicht mit der Datenbank verbunden.
-            (Supabase-Konfiguration fehlt.)
+          <div className="flex justify-center mb-4"><Logo size={56} /></div>
+          <h1 className="font-display text-2xl font-semibold mb-2">Rezeptbase</h1>
+          <p className="text-ink-500">
+            Die App ist noch nicht mit der Datenbank verbunden. (Supabase-Konfiguration fehlt.)
           </p>
         </div>
       </div>
@@ -39,8 +50,9 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-svh flex items-center justify-center">
-        <p className="text-stone-400 animate-pulse">Lade Rezeptbase …</p>
+      <div className="min-h-svh flex flex-col items-center justify-center gap-4">
+        <Logo size={56} />
+        <p className="text-ink-400 animate-pulse text-sm tracking-wide">Rezeptbase wird geladen …</p>
       </div>
     )
   }
