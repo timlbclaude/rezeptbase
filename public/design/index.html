@@ -1,30 +1,72 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rezeptbase Design-System</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rezeptbase Design-System — 2a Nativ</title>
 <style>
-:root{--brand-600:#3d6335;--brand-900:#22351f;--paper:#f7f4ee;--card:#fffdf9;--ink-100:#efeadf;--ink-400:#a49a85;--ink-500:#7c745f;--ink-900:#211d17;--shadow:0 1px 2px rgb(33 29 23/.04),0 4px 16px rgb(33 29 23/.06)}
-*{box-sizing:border-box;margin:0}body{background:var(--paper);font-family:Inter,sans-serif;color:var(--ink-900);padding:32px;max-width:900px;margin:0 auto}
-h1{font-family:Fraunces,serif;font-size:32px;font-weight:600;letter-spacing:-.01em}
-p.sub{color:var(--ink-500);margin:6px 0 28px}
-h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-400);margin:24px 0 12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
-a.card{display:block;background:var(--card);border:1px solid var(--ink-100);border-radius:20px;box-shadow:var(--shadow);overflow:hidden;text-decoration:none;color:inherit;transition:transform .15s}
-a.card:hover{transform:translateY(-2px)}
-a.card iframe{width:200%;height:360px;border:0;transform:scale(.5);transform-origin:0 0;pointer-events:none;display:block}
-a.card .cap{padding:12px 16px;font-weight:600;font-size:14px;border-top:1px solid var(--ink-100)}
+:root{--tint:#3F9147;--tint-dark:#35803C;--tint-soft:rgb(63 145 71/.12);--bg:#F2F2F7;--card:#fff;--fill:#E3E3E8;--ink:#1C1C1E;--ink2:#3C3C43;--ink3:#8E8E93;--ink4:#B0B0B5;--love:#C33D24;--star:#F5A623;--sep:rgb(60 60 67/.12);--shadow:0 1px 2px rgb(0 0 0/.04)}
+*{box-sizing:border-box;margin:0}body{background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,system-ui,"Segoe UI",Roboto,sans-serif;padding:32px;max-width:860px;margin:0 auto;-webkit-font-smoothing:antialiased}
+h1{font-size:34px;font-weight:700;letter-spacing:.3px}
+p.sub{color:var(--ink3);font-size:14.5px;margin:6px 0 8px}
+a.proto{display:inline-flex;align-items:center;gap:8px;background:var(--tint);color:#fff;font-weight:600;font-size:15px;border-radius:14px;padding:13px 22px;text-decoration:none;margin:14px 0 10px}
+h2{font-size:13px;letter-spacing:.03em;text-transform:uppercase;color:var(--ink3);margin:28px 0 10px;font-weight:600}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sw{width:78px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow);font-size:9.5px;background:var(--card)}
+.sw div{height:46px}.sw span{display:block;padding:5px 7px;color:var(--ink2)}
+.card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:16px}
+.chip{display:inline-flex;border-radius:999px;padding:7px 15px;font-size:14px;font-weight:600}
+.chip.on{background:var(--tint);color:#fff}.chip.off{background:var(--card);color:var(--ink2);box-shadow:var(--shadow);font-weight:500}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:50px;border-radius:14px;padding:0 24px;font-weight:600;font-size:16.5px;border:0}
+.btn.tint{background:var(--tint);color:#fff}.btn.fill{background:var(--fill);color:var(--ink2)}
+.seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;max-width:340px}
+.seg span{flex:1;text-align:center;padding:7px;font-size:13.5px;font-weight:600;color:var(--ink2);border-radius:8px}
+.seg .on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgb(0 0 0/.08)}
+table{border-collapse:collapse;font-size:13.5px;background:var(--card);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+td,th{padding:8px 14px;text-align:left;border-bottom:.5px solid var(--sep)}th{color:var(--ink3);font-size:12px;text-transform:uppercase;letter-spacing:.03em}
 </style></head><body>
-<h1>Rezeptbase Design-System</h1>
-<p class="sub">„Herbes &amp; Terrakotta“ — Grundlagen und Komponenten der Rezeptbase-App. Karte anklicken für die Vollansicht.</p>
-<h2>Grundlagen</h2>
-<div class="grid">
-<a class="card" href="foundations/colors.html"><iframe src="foundations/colors.html" loading="lazy" tabindex="-1"></iframe><span class="cap">Farben</span></a>
-<a class="card" href="foundations/typografie.html"><iframe src="foundations/typografie.html" loading="lazy" tabindex="-1"></iframe><span class="cap">Typografie</span></a>
-<a class="card" href="foundations/marke-icons.html"><iframe src="foundations/marke-icons.html" loading="lazy" tabindex="-1"></iframe><span class="cap">Marke &amp; Icons</span></a>
+<h1>Rezeptbase — 2a Nativ</h1>
+<p class="sub">Design-System der Rezeptbase-App: iOS-native Anmutung, System-Schrift, eine Tint-Farbe. Erarbeitet mit Claude Design (Handoff „design_handoff_2a_nativ“).</p>
+<a class="proto" href="prototyp/index.html">▶ Klickbaren Prototyp öffnen (alle 6 Screens)</a>
+
+<h2>Farben</h2>
+<div class="row">
+<div class="sw"><div style="background:var(--tint)"></div><span>Tint #3F9147</span></div>
+<div class="sw"><div style="background:var(--tint-dark)"></div><span>Tint dark</span></div>
+<div class="sw"><div style="background:var(--tint-soft)"></div><span>Tint soft 12%</span></div>
+<div class="sw"><div style="background:var(--bg)"></div><span>BG #F2F2F7</span></div>
+<div class="sw"><div style="background:var(--fill)"></div><span>Fill #E3E3E8</span></div>
+<div class="sw"><div style="background:var(--ink)"></div><span>Ink #1C1C1E</span></div>
+<div class="sw"><div style="background:var(--ink3)"></div><span>Ink-3 #8E8E93</span></div>
+<div class="sw"><div style="background:var(--love)"></div><span>Love #C33D24</span></div>
+<div class="sw"><div style="background:var(--star)"></div><span>Star #F5A623</span></div>
 </div>
-<h2>Komponenten</h2>
-<div class="grid">
-<a class="card" href="components/buttons.html"><iframe src="components/buttons.html" loading="lazy" tabindex="-1"></iframe><span class="cap">Buttons &amp; Chips</span></a>
-<a class="card" href="components/rezeptkarte.html"><iframe src="components/rezeptkarte.html" loading="lazy" tabindex="-1"></iframe><span class="cap">Rezeptkarte</span></a>
-<a class="card" href="components/formulare.html"><iframe src="components/formulare.html" loading="lazy" tabindex="-1"></iframe><span class="cap">Formulare</span></a>
-<a class="card" href="components/kochmodus.html"><iframe src="components/kochmodus.html" loading="lazy" tabindex="-1"></iframe><span class="cap">Kochmodus</span></a>
+
+<h2>Typografie (System-Schrift)</h2>
+<div class="card">
+<p style="font-size:34px;font-weight:700;letter-spacing:.3px">Large Title 34/700</p>
+<p style="font-size:26px;font-weight:700;margin-top:6px">Detail-Titel 26/700</p>
+<p style="font-size:25px;font-weight:600;line-height:1.42;margin-top:6px">Kochschritt 25/600</p>
+<p style="font-size:15.5px;font-weight:600;margin-top:8px">Listenzeile 15.5/600</p>
+<p style="font-size:14.5px;color:var(--ink2);margin-top:4px">Fließtext sekundär 14.5</p>
+<p style="font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--ink3);margin-top:8px">Sektionslabel 13/600</p>
 </div>
+
+<h2>Bedienelemente</h2>
+<div class="row" style="margin-bottom:12px">
+<span class="chip on">Alle</span><span class="chip off">Ausprobieren</span><span class="chip off">Gekocht</span><span class="chip off" style="color:var(--love)">♥</span>
+</div>
+<div class="seg"><span class="on">Zutaten</span><span>Schritte</span><span>Notizen</span></div>
+<div class="row" style="margin-top:12px">
+<button class="btn tint">Kochmodus starten</button>
+<button class="btn fill">Zurück</button>
+</div>
+
+<h2>Radius-Skala</h2>
+<table><tr><th>Wert</th><th>Einsatz</th></tr>
+<tr><td>999px</td><td>Pillen, Chips, Stepper-Buttons</td></tr>
+<tr><td>20px</td><td>Hero-Bildkarte</td></tr>
+<tr><td>16–18px</td><td>Karten & Bild-Grid-Karten</td></tr>
+<tr><td>14px</td><td>Buttons & Portionen-Karte</td></tr>
+<tr><td>12px</td><td>Inputs & Suchfeld</td></tr>
+<tr><td>10px</td><td>Segmented (Track), Thumbnails</td></tr>
+</table>
+
+<h2>Grundsätze</h2>
+<p style="font-size:14px;color:var(--ink2);line-height:1.6;max-width:560px">Eine einzige Markenfarbe (Tint). Karten haben genau eine Schattenstufe und keine Border. Trennlinien sind 0,5px-Hairlines. Navigation über persistente Tab-Bar (Rezepte · Import · Einkauf). Keine Hover-Effekte — Pressed-States. System-Schrift statt Webfonts.</p>
 </body></html>

@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<style>
+body{margin:0;background:#EBE8E1;font-family:-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#3F9147}a:hover{color:#2F7038}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px 60px;gap:16px;box-sizing:border-box">
+<div style="display:flex;align-items:baseline;gap:10px">
+<span style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:5px">2a</span>
+<span style="font:600 13px system-ui,sans-serif;color:#1a1a1a">Rezeptbase — klickbarer Prototyp (Nativ)</span>
+<span style="font:400 11px system-ui,sans-serif;color:rgba(0,0,0,.45)">alles klickbar: Filter, Portionen, Timer, Import, Einkaufsliste</span>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+<button style="{{ jumpListStyle }}" onClick="{{ jumpList }}">Liste</button>
+<button style="{{ jumpDetailStyle }}" onClick="{{ jumpDetail }}">Detail</button>
+<button style="{{ jumpCookStyle }}" onClick="{{ jumpCook }}">Kochmodus</button>
+<button style="{{ jumpImportStyle }}" onClick="{{ jumpImport }}">Import</button>
+<button style="{{ jumpShopStyle }}" onClick="{{ jumpShop }}">Einkaufsliste</button>
+<button style="{{ jumpLoginStyle }}" onClick="{{ jumpLogin }}">Login</button>
+</div>
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px" style="flex:none">
+<div style="height:100%;display:flex;flex-direction:column;background:#F2F2F7;color:#1C1C1E;box-sizing:border-box;position:relative;overflow:hidden;font-family:-apple-system,system-ui,sans-serif">
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
+<div style="height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 32px 60px;box-sizing:border-box">
+<div style="display:flex;justify-content:center;margin-bottom:18px">
+<span style="width:74px;height:74px;border-radius:20px;background:#3F9147;display:grid;place-content:center;box-shadow:0 10px 24px rgba(63,145,71,.3)">
+<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.9A4 4 0 0 1 7.2 6.1 4.5 4.5 0 0 1 12 3a4.5 4.5 0 0 1 4.8 3.1A4 4 0 0 1 18 13.9V19H6v-5.1z"></path><path d="M6 17h12"></path></svg>
+</span>
+</div>
+<h1 style="margin:0 0 4px;text-align:center;font-size:28px;font-weight:700;letter-spacing:.2px">Rezeptbase</h1>
+<p style="margin:0 0 30px;text-align:center;font-size:14.5px;color:#8E8E93">Deine persönliche Rezeptsammlung</p>
+<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:.04em">E-Mail</p>
+<input type="email" placeholder="du@beispiel.de" value="{{ email }}" onChange="{{ setEmail }}" style="width:100%;box-sizing:border-box;background:#fff;border:none;border-radius:12px;padding:14px 15px;font-size:16px;font-family:inherit;outline:none;margin-bottom:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+<p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:.04em">Passwort</p>
+<input type="password" placeholder="••••••••" value="{{ pw }}" onChange="{{ setPw }}" style="width:100%;box-sizing:border-box;background:#fff;border:none;border-radius:12px;padding:14px 15px;font-size:16px;font-family:inherit;outline:none;margin-bottom:22px;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+<button onClick="{{ login }}" style="width:100%;height:50px;border:none;border-radius:14px;background:#3F9147;color:#fff;font-size:16.5px;font-weight:600;font-family:inherit;cursor:pointer">Anmelden</button>
+<p style="margin:14px 0 0;text-align:center;font-size:12px;color:#B0B0B5">Prototyp — beliebige Eingabe funktioniert</p>
+</div>
+</sc-if>
+
+<sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+<div style="height:100%;display:flex;flex-direction:column;box-sizing:border-box">
+<div style="padding:62px 16px 4px">
+<div style="display:flex;align-items:flex-end;justify-content:space-between;margin:10px 0 12px">
+<h1 style="margin:0;font-size:34px;font-weight:700;letter-spacing:.3px">Rezepte</h1>
+<span onClick="{{ jumpLogin }}" style="width:34px;height:34px;border-radius:50%;background:#E3E3E8;display:grid;place-content:center;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3F9147" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path></svg></span>
+</div>
+<div style="display:flex;align-items:center;gap:8px;background:#E3E3E8;border-radius:12px;padding:9px 12px;margin-bottom:12px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M16.5 16.5L21 21"></path></svg>
+<input placeholder="Titel oder Zutat suchen" value="{{ q }}" onChange="{{ setQ }}" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;outline:none;color:#1C1C1E">
+</div>
+<div style="display:flex;gap:8px;margin-bottom:6px">
+<span style="{{ chipAlleStyle }}" onClick="{{ tabAlle }}">Alle</span>
+<span style="{{ chipTryStyle }}" onClick="{{ tabTry }}">Ausprobieren</span>
+<span style="{{ chipDoneStyle }}" onClick="{{ tabDone }}">Gekocht</span>
+<span style="{{ chipFavStyle }}" onClick="{{ tabFav }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="{{ favChipFill }}" stroke="#C33D24" stroke-width="2"><path d="M12 21s-7.5-4.8-10-9.3C.3 8.4 2.4 4.8 6 4.8c2.2 0 3.5 1.2 4 2.3.5-1.1 1.8-2.3 4-2.3 3.6 0 5.7 3.6 4 6.9C19.5 16.2 12 21 12 21z"></path></svg></span>
+</div>
+</div>
+<div style="flex:1;overflow-y:auto;padding:8px 16px 100px">
+<sc-if value="{{ showTrySection }}" hint-placeholder-val="{{ true }}">
+<p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:.03em;padding:0 4px">Zum Ausprobieren · {{ tryCount }}</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px">
+<sc-for list="{{ tryList }}" as="r" hint-placeholder-count="2">
+<div onClick="{{ r.open }}" style="background:#fff;border-radius:18px;padding:6px 6px 12px;box-shadow:0 1px 2px rgba(0,0,0,.04);cursor:pointer">
+<div style="position:relative;height:106px;border-radius:13px;margin-bottom:9px;background:{{ r.img }}">
+<sc-if value="{{ r.fav }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:7px;right:7px;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="#C33D24"><path d="M12 21s-7.5-4.8-10-9.3C.3 8.4 2.4 4.8 6 4.8c2.2 0 3.5 1.2 4 2.3.5-1.1 1.8-2.3 4-2.3 3.6 0 5.7 3.6 4 6.9C19.5 16.2 12 21 12 21z"></path></svg></span></sc-if>
+</div>
+<p style="margin:0 6px 3px;font-size:15px;font-weight:600;letter-spacing:-.2px">{{ r.title }}</p>
+<p style="margin:0 6px;font-size:12.5px;color:#8E8E93">{{ r.meta }}</p>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:.03em;padding:0 4px">{{ mainSectionLabel }}</p>
+<sc-if value="{{ hasResults }}" hint-placeholder-val="{{ true }}">
+<div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+<sc-for list="{{ mainList }}" as="r" hint-placeholder-count="4">
+<div onClick="{{ r.open }}" style="display:flex;align-items:center;gap:12px;padding:9px 14px 9px 9px;border-bottom:.5px solid rgba(60,60,67,.12);cursor:pointer">
+<span style="width:52px;height:52px;border-radius:10px;flex:none;background:{{ r.img }}"></span>
+<div style="flex:1;min-width:0"><p style="margin:0 0 2px;font-size:15.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.title }}</p><p style="margin:0;font-size:12.5px;color:#8E8E93">{{ r.meta2 }}</p></div>
+<svg width="8" height="14" viewBox="0 0 8 14" style="flex:none"><path d="M1 1l6 6-6 6" stroke="rgba(60,60,67,.3)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+<div style="text-align:center;padding:40px 20px">
+<span style="display:inline-grid;place-content:center;width:56px;height:56px;border-radius:18px;background:#E3E3E8;color:#8E8E93;margin-bottom:12px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M16.5 16.5L21 21"></path></svg></span>
+<p style="margin:0 0 4px;font-size:16px;font-weight:600">Nichts gefunden</p>
+<p style="margin:0;font-size:13.5px;color:#8E8E93">Passe Suche oder Filter an.</p>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+<div style="height:100%;overflow-y:auto;box-sizing:border-box;padding:62px 16px 110px">
+<div style="position:relative;height:246px;border-radius:20px;overflow:hidden;margin:8px 0 16px;background:{{ recipe.img }}">
+<div onClick="{{ backToList }}" style="position:absolute;top:12px;left:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.9);display:grid;place-content:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1C1C1E" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></div>
+<div onClick="{{ toggleFav }}" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.9);display:grid;place-content:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="{{ heartFill }}" stroke="#C33D24" stroke-width="2"><path d="M12 21s-7.5-4.8-10-9.3C.3 8.4 2.4 4.8 6 4.8c2.2 0 3.5 1.2 4 2.3.5-1.1 1.8-2.3 4-2.3 3.6 0 5.7 3.6 4 6.9C19.5 16.2 12 21 12 21z"></path></svg></div>
+<span style="position:absolute;bottom:10px;left:10px;background:rgba(255,255,255,.92);border-radius:999px;padding:5px 11px;font-size:11.5px;font-weight:600;color:#3C3C43">{{ recipe.statusLabel }}</span>
+</div>
+<h1 style="margin:0 0 4px;font-size:26px;font-weight:700;letter-spacing:.2px">{{ recipe.title }}</h1>
+<p style="margin:0 0 14px;font-size:14px;color:#8E8E93">{{ recipe.metaLine }}</p>
+<div style="display:flex;background:#E3E3E8;border-radius:10px;padding:2px;margin-bottom:16px">
+<span style="{{ segZutStyle }}" onClick="{{ segZut }}">Zutaten</span>
+<span style="{{ segStepStyle }}" onClick="{{ segStep }}">Schritte</span>
+<span style="{{ segNoteStyle }}" onClick="{{ segNote }}">Notizen</span>
+</div>
+<sc-if value="{{ segIsZutaten }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:14px;padding:11px 14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+<div><p style="margin:0;font-size:15.5px;font-weight:600">Portionen</p><p style="margin:1px 0 0;font-size:12px;color:#8E8E93">{{ servingsHint }}</p></div>
+<div style="display:flex;align-items:center;background:#E3E3E8;border-radius:9px">
+<span onClick="{{ decServ }}" style="padding:7px 14px;font-size:17px;color:#3C3C43;cursor:pointer">−</span>
+<span style="width:.5px;height:18px;background:rgba(60,60,67,.25)"></span>
+<span style="padding:7px 12px;font-size:15px;font-weight:700;color:#3F9147;min-width:16px;text-align:center">{{ servings }}</span>
+<span style="width:.5px;height:18px;background:rgba(60,60,67,.25)"></span>
+<span onClick="{{ incServ }}" style="padding:7px 14px;font-size:17px;color:#3C3C43;cursor:pointer">+</span>
+</div>
+</div>
+<div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04);margin-bottom:10px">
+<sc-for list="{{ ingredients }}" as="ing" hint-placeholder-count="6">
+<div onClick="{{ ing.toggle }}" style="display:flex;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:.5px solid rgba(60,60,67,.12);font-size:15.5px;cursor:pointer">
+<span style="{{ ing.nameStyle }}">{{ ing.n }}</span><span style="{{ ing.amtStyle }}">{{ ing.amt }}</span>
+</div>
+</sc-for>
+<div onClick="{{ addToCart }}" style="display:flex;align-items:center;gap:8px;padding:12px 14px;font-size:15.5px;font-weight:500;color:#3F9147;cursor:pointer">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><path d="M3 6h18M16 10a4 4 0 0 1-8 0"></path></svg>
+Alles auf die Einkaufsliste</div>
+</div>
+<sc-if value="{{ cartMsg }}" hint-placeholder-val="{{ false }}">
+<p style="margin:0;display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:500;color:#3F9147;background:rgba(63,145,71,.1);border-radius:12px;padding:11px 14px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>{{ cartMsg }}</p>
+</sc-if>
+</sc-if>
+<sc-if value="{{ segIsSchritte }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+<sc-for list="{{ steps }}" as="s" hint-placeholder-count="5">
+<div style="display:flex;gap:12px;padding:13px 14px;border-bottom:.5px solid rgba(60,60,67,.12)">
+<span style="flex:none;width:26px;height:26px;border-radius:50%;background:#E3E3E8;display:grid;place-content:center;font-size:13px;font-weight:700;color:#3C3C43">{{ s.nr }}</span>
+<p style="margin:1px 0 0;flex:1;font-size:14.5px;line-height:1.45;color:#3C3C43">{{ s.t }}</p>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ segIsNotizen }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;border-radius:14px;padding:13px 14px;box-shadow:0 1px 2px rgba(0,0,0,.04);margin-bottom:12px">
+<p style="margin:0 0 8px;font-size:15.5px;font-weight:600">Bewertung</p>
+<div style="display:flex;gap:6px">
+<sc-for list="{{ stars }}" as="st" hint-placeholder-count="5">
+<svg onClick="{{ st.set }}" width="26" height="26" viewBox="0 0 24 24" fill="{{ st.fill }}" stroke="{{ st.stroke }}" stroke-width="1.6" style="cursor:pointer"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"></path></svg>
+</sc-for>
+</div>
+</div>
+<div style="background:#fff;border-radius:14px;padding:13px 14px;box-shadow:0 1px 2px rgba(0,0,0,.04);margin-bottom:12px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+<div><p style="margin:0;font-size:15.5px;font-weight:600">{{ recipe.statusLabel }}</p><p style="margin:1px 0 0;font-size:12px;color:#8E8E93">{{ lastCookedLabel }}</p></div>
+<span onClick="{{ toggleStatus }}" style="background:#E3E3E8;border-radius:999px;padding:8px 16px;font-size:13.5px;font-weight:600;color:#3C3C43;cursor:pointer;white-space:nowrap">{{ statusBtnLabel }}</span>
+</div>
+</div>
+<textarea rows="4" placeholder="z.B. weniger Salz, Beilage: Reis …" value="{{ notes }}" onChange="{{ setNotes }}" style="width:100%;box-sizing:border-box;background:#fff;border:none;border-radius:14px;padding:13px 14px;font-size:15px;font-family:inherit;outline:none;resize:none;box-shadow:0 1px 2px rgba(0,0,0,.04);color:#1C1C1E"></textarea>
+<sc-if value="{{ notesDirty }}" hint-placeholder-val="{{ false }}">
+<span onClick="{{ saveNotes }}" style="display:inline-block;margin-top:10px;background:#3F9147;color:#fff;border-radius:999px;padding:9px 18px;font-size:13.5px;font-weight:600;cursor:pointer">Notizen speichern</span>
+</sc-if>
+<sc-if value="{{ notesSavedMsg }}" hint-placeholder-val="{{ false }}">
+<p style="margin:10px 0 0;font-size:13px;color:#3F9147;font-weight:500">Gespeichert.</p>
+</sc-if>
+</sc-if>
+</div>
+<div style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 28px;background:linear-gradient(to top,#F2F2F7 70%,transparent)">
+<div onClick="{{ goCook }}" style="height:52px;border-radius:14px;background:#3F9147;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.2-.2-4.2 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.5-2.3 1.5-3"></path></svg>
+<span style="font-size:16.5px;font-weight:600;color:#fff">Kochmodus starten</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCook }}" hint-placeholder-val="{{ false }}">
+<div style="height:100%;display:flex;flex-direction:column;box-sizing:border-box;padding:62px 20px 0;background:#fff">
+<div style="display:flex;align-items:center;justify-content:space-between;margin:6px 0 16px">
+<span onClick="{{ exitCook }}" style="width:32px;height:32px;border-radius:50%;background:#E3E3E8;display:grid;place-content:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3C3C43" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"></path></svg></span>
+<span style="font-size:15px;font-weight:600">{{ cookHeader }}</span>
+<span onClick="{{ toggleCookIngr }}" style="font-size:15px;font-weight:500;color:#3F9147;cursor:pointer">Zutaten</span>
+</div>
+<div style="height:4px;border-radius:2px;background:#E3E3E8;margin-bottom:34px;overflow:hidden"><span style="{{ cookBarStyle }}"></span></div>
+<sc-if value="{{ cookDone }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:60px">
+<span style="width:84px;height:84px;border-radius:50%;background:rgba(63,145,71,.12);display:grid;place-content:center;margin-bottom:20px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3F9147" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+<h2 style="margin:0 0 6px;font-size:28px;font-weight:700">Guten Appetit!</h2>
+<p style="margin:0 0 26px;font-size:14.5px;color:#8E8E93">Alle {{ stepCount }} Schritte geschafft.</p>
+<span onClick="{{ finishCooked }}" style="background:#3F9147;color:#fff;border-radius:14px;padding:14px 26px;font-size:16px;font-weight:600;cursor:pointer">Als gekocht markieren</span>
+<span onClick="{{ exitCook }}" style="margin-top:12px;color:#8E8E93;font-size:14.5px;font-weight:500;cursor:pointer">Zum Rezept</span>
+</div>
+</sc-if>
+<sc-if value="{{ cookActive }}" hint-placeholder-val="{{ false }}">
+<p style="margin:0 0 22px;font-size:25px;line-height:1.42;font-weight:600;letter-spacing:.1px;text-wrap:pretty">{{ cookText }}</p>
+<sc-if value="{{ cookHasTimer }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;align-items:center;gap:12px;background:#F2F2F7;border-radius:16px;padding:13px 14px;margin-bottom:12px">
+<span style="width:40px;height:40px;border-radius:50%;background:rgba(63,145,71,.13);display:grid;place-content:center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3F9147" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2.5M9 2h6"></path></svg></span>
+<div style="flex:1">
+<p style="margin:0 0 1px;font-size:15px;font-weight:600;color:#3F9147">{{ timerDisplay }}</p>
+<p style="margin:0;font-size:13px;color:#8E8E93">Timer für diesen Schritt</p>
+</div>
+<span onClick="{{ toggleTimer }}" style="background:#3F9147;color:#fff;font-size:14px;font-weight:600;border-radius:999px;padding:8px 18px;cursor:pointer">{{ timerBtnLabel }}</span>
+</div>
+</sc-if>
+<sc-if value="{{ cookHasIngr }}" hint-placeholder-val="{{ false }}">
+<div style="background:#F2F2F7;border-radius:16px;padding:13px 14px">
+<p style="margin:0 0 3px;font-size:12px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:.03em">In diesem Schritt</p>
+<p style="margin:0;font-size:14.5px;color:#3C3C43">{{ cookIngrLine }}</p>
+</div>
+</sc-if>
+<div style="margin-top:auto;display:flex;gap:10px;padding-bottom:28px">
+<div onClick="{{ cookPrev }}" style="{{ cookPrevStyle }}"><span style="font-size:16px;font-weight:600;color:#3C3C43">Zurück</span></div>
+<div onClick="{{ cookNext }}" style="flex:2;height:50px;border-radius:14px;background:#3F9147;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer"><span style="font-size:16px;font-weight:600;color:#fff">{{ cookNextLabel }}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></div>
+</div>
+</sc-if>
+<sc-if value="{{ showCookIngr }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:0;right:0;bottom:0;top:0;background:rgba(0,0,0,.25)" onClick="{{ toggleCookIngr }}"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:18px 20px 40px;box-shadow:0 -8px 30px rgba(0,0,0,.12)">
+<div style="width:38px;height:4px;border-radius:2px;background:#D9D9DE;margin:0 auto 14px"></div>
+<p style="margin:0 0 10px;font-size:17px;font-weight:700">Zutaten <span style="color:#8E8E93;font-weight:500">für {{ servings }} Portionen</span></p>
+<sc-for list="{{ ingredients }}" as="ing" hint-placeholder-count="6">
+<div style="display:flex;justify-content:space-between;gap:12px;padding:8.5px 0;border-bottom:.5px solid rgba(60,60,67,.1);font-size:15px">
+<span style="color:#3C3C43">{{ ing.n }}</span><span style="color:#8E8E93">{{ ing.amt }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isImport }}" hint-placeholder-val="{{ false }}">
+<div style="height:100%;display:flex;flex-direction:column;box-sizing:border-box;padding:62px 16px 0;overflow-y:auto">
+<div style="display:flex;align-items:flex-end;justify-content:space-between;margin:10px 0 14px">
+<h1 style="margin:0;font-size:34px;font-weight:700;letter-spacing:.3px">Import</h1>
+<span onClick="{{ backToList }}" style="width:32px;height:32px;border-radius:50%;background:#E3E3E8;display:grid;place-content:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3C3C43" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"></path></svg></span>
+</div>
+<sc-if value="{{ importForm }}" hint-placeholder-val="{{ false }}">
+<p style="margin:0 0 18px;font-size:14.5px;line-height:1.45;color:#8E8E93">Link einfügen — YouTube, Short oder Kochseite. Die KI extrahiert Zutaten und Schritte automatisch.</p>
+<div style="display:flex;align-items:center;gap:9px;background:#fff;border-radius:14px;padding:14px 15px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"></path><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg>
+<input placeholder="https://…" value="{{ importUrl }}" onChange="{{ setImportUrl }}" style="flex:1;border:none;background:transparent;font-size:16px;font-family:inherit;outline:none;color:#1C1C1E">
+</div>
+<p style="margin:0 0 18px;font-size:13.5px;color:#8E8E93;text-decoration:underline;text-underline-offset:2px">Oder Rezepttext manuell einfügen</p>
+<div onClick="{{ extract }}" style="{{ extractBtnStyle }}">
+<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"></path><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"></path></svg>
+<span style="font-size:16.5px;font-weight:600;color:#fff">{{ extractLabel }}</span>
+</div>
+<sc-if value="{{ importBusy }}" hint-placeholder-val="{{ false }}">
+<p style="margin:16px 0 0;text-align:center;font-size:13px;color:#8E8E93;animation:pulse 1.4s infinite">Quelle wird gelesen und strukturiert — dauert 10–30 Sekunden …</p>
+</sc-if>
+</sc-if>
+<sc-if value="{{ importPreview }}" hint-placeholder-val="{{ false }}">
+<p style="margin:0 0 14px;font-size:14.5px;line-height:1.45;color:#8E8E93">Die KI hat Folgendes extrahiert — prüfe und korrigiere vor dem Speichern.</p>
+<div style="height:150px;border-radius:16px;margin-bottom:14px;background:radial-gradient(130px 90px at 35% 45%,#D9C25A 0%,transparent 70%),radial-gradient(150px 110px at 75% 55%,#9A8A2E 0%,transparent 75%),linear-gradient(160deg,#8A7A28,#3E3810)"></div>
+<p style="margin:0 0 5px;font-size:12px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:.04em">Titel</p>
+<input value="{{ importTitle }}" onChange="{{ setImportTitle }}" style="width:100%;box-sizing:border-box;background:#fff;border:none;border-radius:12px;padding:12px 14px;font-size:16px;font-weight:600;font-family:inherit;outline:none;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);color:#1C1C1E">
+<div style="display:flex;gap:10px;margin-bottom:12px">
+<div style="flex:1;background:#fff;border-radius:12px;padding:10px 13px;box-shadow:0 1px 2px rgba(0,0,0,.04)"><p style="margin:0 0 2px;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase">Kategorie</p><p style="margin:0;font-size:14.5px;font-weight:500">Hauptgericht</p></div>
+<div style="flex:1;background:#fff;border-radius:12px;padding:10px 13px;box-shadow:0 1px 2px rgba(0,0,0,.04)"><p style="margin:0 0 2px;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase">Zeit</p><p style="margin:0;font-size:14.5px;font-weight:500">25 Min</p></div>
+<div style="flex:1;background:#fff;border-radius:12px;padding:10px 13px;box-shadow:0 1px 2px rgba(0,0,0,.04)"><p style="margin:0 0 2px;font-size:11px;font-weight:600;color:#8E8E93;text-transform:uppercase">Portionen</p><p style="margin:0;font-size:14.5px;font-weight:500">4</p></div>
+</div>
+<div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04);margin-bottom:16px">
+<div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:.5px solid rgba(60,60,67,.12);font-size:14.5px"><span>Spaghetti</span><span style="color:#8E8E93">400 g</span></div>
+<div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:.5px solid rgba(60,60,67,.12);font-size:14.5px"><span>Garnelen, geschält</span><span style="color:#8E8E93">300 g</span></div>
+<div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:.5px solid rgba(60,60,67,.12);font-size:14.5px"><span>Bio-Zitrone</span><span style="color:#8E8E93">1</span></div>
+<div style="padding:10px 14px;font-size:13.5px;color:#8E8E93">+ 5 weitere Zutaten · 5 Schritte erkannt</div>
+</div>
+<div style="display:flex;gap:10px;padding-bottom:30px">
+<div onClick="{{ importBack }}" style="flex:1;height:50px;border-radius:14px;background:#E3E3E8;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-size:16px;font-weight:600;color:#3C3C43">Zurück</span></div>
+<div onClick="{{ saveImport }}" style="flex:2;height:50px;border-radius:14px;background:#3F9147;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg><span style="font-size:16px;font-weight:600;color:#fff">Rezept speichern</span></div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isShopping }}" hint-placeholder-val="{{ false }}">
+<div style="height:100%;display:flex;flex-direction:column;box-sizing:border-box">
+<div style="padding:62px 16px 4px">
+<div style="display:flex;align-items:flex-end;justify-content:space-between;margin:10px 0 4px">
+<h1 style="margin:0;font-size:34px;font-weight:700;letter-spacing:.3px">Einkauf</h1>
+<sc-if value="{{ hasDoneItems }}" hint-placeholder-val="{{ false }}">
+<span onClick="{{ removeChecked }}" style="font-size:14px;font-weight:600;color:#3F9147;cursor:pointer">Erledigte entfernen</span>
+</sc-if>
+</div>
+<p style="margin:0 0 10px;font-size:13.5px;color:#8E8E93">{{ shoppingHint }}</p>
+</div>
+<div style="flex:1;overflow-y:auto;padding:4px 16px 170px">
+<sc-if value="{{ hasOpenItems }}" hint-placeholder-val="{{ true }}">
+<div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04)">
+<sc-for list="{{ openItems }}" as="it" hint-placeholder-count="4">
+<div onClick="{{ it.toggle }}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:.5px solid rgba(60,60,67,.12);cursor:pointer">
+<span style="width:23px;height:23px;border-radius:50%;border:1.8px solid #C7C7CC;flex:none"></span>
+<span style="flex:1;font-size:15.5px"><strong style="font-weight:600">{{ it.amt }}</strong> {{ it.n }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ hasDoneItems }}" hint-placeholder-val="{{ false }}">
+<p style="margin:18px 0 8px;font-size:13px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:.03em;padding:0 4px">Im Wagen · {{ doneCount }}</p>
+<div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04);opacity:.75">
+<sc-for list="{{ doneItems }}" as="it" hint-placeholder-count="2">
+<div onClick="{{ it.toggle }}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:.5px solid rgba(60,60,67,.12);cursor:pointer">
+<span style="width:23px;height:23px;border-radius:50%;background:#3F9147;flex:none;display:grid;place-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+<span style="flex:1;font-size:15.5px;color:#8E8E93;text-decoration:line-through">{{ it.amt }} {{ it.n }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ shoppingEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="text-align:center;padding:50px 20px">
+<span style="display:inline-grid;place-content:center;width:56px;height:56px;border-radius:18px;background:#E3E3E8;color:#8E8E93;margin-bottom:12px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><path d="M3 6h18M16 10a4 4 0 0 1-8 0"></path></svg></span>
+<p style="margin:0 0 4px;font-size:16px;font-weight:600">Noch leer</p>
+<p style="margin:0;font-size:13.5px;color:#8E8E93">Öffne ein Rezept und tippe auf „Alles auf die Einkaufsliste".</p>
+</div>
+</sc-if>
+</div>
+<div style="position:absolute;left:0;right:0;bottom:76px;padding:10px 16px;background:linear-gradient(to top,#F2F2F7 75%,transparent)">
+<div style="display:flex;gap:8px">
+<input placeholder="Artikel hinzufügen …" value="{{ newItem }}" onChange="{{ setNewItem }}" style="flex:1;background:#fff;border:none;border-radius:12px;padding:12px 14px;font-size:15.5px;font-family:inherit;outline:none;box-shadow:0 1px 2px rgba(0,0,0,.06);color:#1C1C1E">
+<span onClick="{{ addItem }}" style="width:46px;height:46px;border-radius:12px;background:#3F9147;display:grid;place-content:center;cursor:pointer;flex:none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showTabBar }}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;left:0;right:0;bottom:0;background:rgba(249,249,251,.92);backdrop-filter:blur(12px);border-top:.5px solid rgba(60,60,67,.2);padding:9px 40px 24px;display:flex;justify-content:space-between">
+<div onClick="{{ backToList }}" style="{{ tabRezStyle }}">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z"></path><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"></path></svg>
+<span style="font-size:10px;font-weight:600">Rezepte</span>
+</div>
+<div onClick="{{ goImport }}" style="{{ tabImpStyle }}">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8M8 12h8"></path></svg>
+<span style="font-size:10px;font-weight:500">Import</span>
+</div>
+<div onClick="{{ goShopping }}" style="{{ tabShopStyle }}">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><path d="M3 6h18M16 10a4 4 0 0 1-8 0"></path></svg>
+<span style="font-size:10px;font-weight:500">Einkauf</span>
+</div>
+</div>
+</sc-if>
+
+</div>
+</x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;liste&quot;,&quot;login&quot;],&quot;default&quot;:&quot;liste&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Verhalten&quot;},&quot;ansicht&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;raster&quot;,&quot;liste&quot;],&quot;default&quot;:&quot;raster&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Verhalten&quot;}}">
+class Component extends DCLogic {
+  data = [
+    {id:'shak',title:'Shakshuka mit Feta',cat:'Hauptgericht',cui:'Israelisch',time:35,base:4,rating:4,status:'try',fav:true,
+     img:'radial-gradient(90px 70px at 32% 40%,#C4552B 0%,transparent 70%),radial-gradient(110px 80px at 75% 65%,#7A2F14 0%,transparent 75%),linear-gradient(160deg,#8F3A1C,#4A1D0C)',
+     ingr:[{a:2,u:'EL',n:'Olivenöl',s:1},{a:1,u:'',n:'Zwiebel, fein gewürfelt',s:1,c:1},{a:2,u:'',n:'Knoblauchzehen',s:1,c:1},{a:2,u:'',n:'Rote Paprika, in Streifen',s:1,c:1},{a:1,u:'TL',n:'Kreuzkümmel',s:1},{a:1,u:'TL',n:'Paprikapulver, geräuchert',s:1},{a:400,u:'g',n:'Gehackte Tomaten',s:1},{a:4,u:'',n:'Eier',s:1,c:1},{a:100,u:'g',n:'Feta',s:1},{a:0.5,u:'Bund',n:'Petersilie',s:1}],
+     steps:[{t:'Olivenöl in einer großen Pfanne erhitzen, Zwiebel glasig dünsten.'},{t:'Knoblauch, Kreuzkümmel und Paprikapulver zugeben, 1 Minute mitrösten.'},{t:'Tomaten und Paprika zugeben und offen 10 Minuten köcheln lassen, bis die Sauce leicht eindickt.',min:10,ing:'400 g gehackte Tomaten · 2 rote Paprika'},{t:'Mit Salz und Pfeffer abschmecken, vier Mulden in die Sauce drücken.'},{t:'Eier in die Mulden schlagen, zugedeckt 8 Minuten stocken lassen.',min:8,ing:'4 Eier'},{t:'Feta darüberbröseln und kurz warm werden lassen.',ing:'100 g Feta'},{t:'Mit Petersilie bestreuen und direkt aus der Pfanne servieren.'}]},
+    {id:'pasta',title:'Cremige Pilz-Pasta',cat:'Hauptgericht',cui:'Italienisch',time:25,base:4,rating:4,status:'done',fav:false,last:'02.08.2026',
+     img:'radial-gradient(90px 70px at 40% 45%,#C9A86A 0%,transparent 70%),linear-gradient(160deg,#7A5C2E,#2E2210)',
+     ingr:[{a:400,u:'g',n:'Tagliatelle',s:1},{a:500,u:'g',n:'Braune Champignons',s:1},{a:1,u:'',n:'Zwiebel',s:1,c:1},{a:200,u:'ml',n:'Sahne',s:1},{a:50,u:'g',n:'Parmesan, gerieben',s:1},{a:2,u:'EL',n:'Butter',s:1}],
+     steps:[{t:'Pasta in reichlich Salzwasser al dente kochen.',min:12},{t:'Pilze in Scheiben schneiden, in Butter goldbraun braten.',ing:'500 g Champignons'},{t:'Zwiebel zugeben und glasig dünsten.'},{t:'Sahne angießen, 3 Minuten einkochen, Parmesan einrühren.',min:3},{t:'Pasta untermischen, mit Pastawasser binden, sofort servieren.'}]},
+    {id:'thai',title:'Thai-Basilikum-Hähnchen',cat:'Hauptgericht',cui:'Thailändisch',time:30,base:4,rating:5,status:'done',fav:true,last:'10.08.2026',
+     img:'radial-gradient(90px 70px at 40% 45%,#5E8C4A 0%,transparent 70%),linear-gradient(160deg,#3E5A2E,#182410)',
+     ingr:[{a:600,u:'g',n:'Hähnchenbrust, gewürfelt',s:1},{a:3,u:'',n:'Knoblauchzehen',s:1,c:1},{a:2,u:'',n:'Rote Chilis',s:1,c:1},{a:3,u:'EL',n:'Sojasauce',s:1},{a:1,u:'EL',n:'Fischsauce',s:1},{a:1,u:'Bund',n:'Thai-Basilikum',s:1},{a:300,u:'g',n:'Jasminreis',s:1}],
+     steps:[{t:'Reis nach Packungsanweisung kochen.',min:12},{t:'Knoblauch und Chili fein hacken, im Wok scharf anbraten.'},{t:'Hähnchen zugeben und 5 Minuten braten.',min:5,ing:'600 g Hähnchen'},{t:'Mit Soja- und Fischsauce ablöschen.'},{t:'Basilikum unterheben, sofort mit Reis servieren.'}]},
+    {id:'ramen',title:'Miso-Ramen mit Ei',cat:'Suppe',cui:'Japanisch',time:45,base:2,rating:null,status:'try',fav:true,
+     img:'radial-gradient(90px 70px at 40% 45%,#8A6B3A 0%,transparent 70%),linear-gradient(160deg,#4E3A1C,#1E1408)',
+     ingr:[{a:2,u:'',n:'Eier',s:1,c:1},{a:200,u:'g',n:'Ramen-Nudeln',s:1},{a:3,u:'EL',n:'Misopaste',s:1},{a:1,u:'l',n:'Gemüsebrühe',s:1},{a:150,u:'g',n:'Shiitake',s:1},{a:2,u:'',n:'Frühlingszwiebeln',s:1,c:1},{a:1,u:'EL',n:'Sesamöl',s:1}],
+     steps:[{t:'Eier 7 Minuten wachsweich kochen, abschrecken und schälen.',min:7,ing:'2 Eier'},{t:'Brühe erhitzen, Misopaste einrühren.'},{t:'Shiitake in Sesamöl anbraten.',ing:'150 g Shiitake'},{t:'Nudeln in der Brühe 4 Minuten garen.',min:4},{t:'Alles in Schalen anrichten, Ei halbieren und auflegen.'},{t:'Mit Frühlingszwiebeln bestreuen.'}]},
+    {id:'risotto',title:'Zitronen-Risotto',cat:'Beilage',cui:'Italienisch',time:40,base:4,rating:null,status:'try',fav:false,
+     img:'radial-gradient(90px 70px at 40% 45%,#D9C25A 0%,transparent 70%),linear-gradient(160deg,#9A8A2E,#3E3810)',
+     ingr:[{a:300,u:'g',n:'Risottoreis',s:1},{a:1,u:'l',n:'Gemüsebrühe',s:1},{a:1,u:'',n:'Bio-Zitrone',s:1,c:1},{a:100,u:'ml',n:'Weißwein',s:1},{a:60,u:'g',n:'Parmesan',s:1},{a:1,u:'',n:'Schalotte',s:1,c:1}],
+     steps:[{t:'Schalotte fein würfeln und in Butter glasig dünsten.'},{t:'Reis zugeben, glasig rühren, mit Weißwein ablöschen.'},{t:'Nach und nach heiße Brühe zugeben, 18 Minuten rühren.',min:18},{t:'Zitronenschale und -saft einrühren.',ing:'1 Bio-Zitrone'},{t:'Parmesan unterheben, abschmecken, kurz ruhen lassen.'}]},
+    {id:'kart',title:'Ofenkartoffeln mit Kräuterquark',cat:'Hauptgericht',cui:'',time:50,base:4,rating:3,status:'done',fav:false,last:'27.07.2026',
+     img:'radial-gradient(90px 70px at 40% 45%,#C98E4A 0%,transparent 70%),linear-gradient(160deg,#8A5C2E,#2E1D10)',
+     ingr:[{a:1,u:'kg',n:'Festkochende Kartoffeln',s:1},{a:3,u:'EL',n:'Olivenöl',s:1},{a:500,u:'g',n:'Quark',s:1},{a:1,u:'Bund',n:'Schnittlauch',s:1},{a:1,u:'TL',n:'Paprikapulver',s:1}],
+     steps:[{t:'Ofen auf 200 °C vorheizen, Kartoffeln in Spalten schneiden.'},{t:'Mit Öl, Salz und Paprika mischen, aufs Blech geben.'},{t:'35 Minuten backen, nach der Hälfte wenden.',min:35},{t:'Quark mit Schnittlauch verrühren und dazu servieren.'}]}
+  ];
+  newRecipe = {id:'neu',title:'Zitronen-Pasta mit Garnelen',cat:'Hauptgericht',cui:'Italienisch',time:25,base:4,rating:null,status:'try',fav:false,
+    img:'radial-gradient(90px 70px at 35% 45%,#D9C25A 0%,transparent 70%),radial-gradient(110px 80px at 75% 55%,#9A8A2E 0%,transparent 75%),linear-gradient(160deg,#8A7A28,#3E3810)',
+    ingr:[{a:400,u:'g',n:'Spaghetti',s:1},{a:300,u:'g',n:'Garnelen, geschält',s:1},{a:1,u:'',n:'Bio-Zitrone',s:1,c:1},{a:3,u:'',n:'Knoblauchzehen',s:1,c:1},{a:4,u:'EL',n:'Olivenöl',s:1},{a:1,u:'',n:'Rote Chili',s:1,c:1},{a:1,u:'Bund',n:'Petersilie',s:1},{a:50,u:'g',n:'Parmesan',s:1}],
+    steps:[{t:'Spaghetti al dente kochen, etwas Pastawasser aufheben.',min:9},{t:'Knoblauch und Chili in Olivenöl sanft anbraten.'},{t:'Garnelen zugeben, 3 Minuten braten.',min:3,ing:'300 g Garnelen'},{t:'Zitronensaft und -schale zugeben, Pasta untermischen.'},{t:'Mit Petersilie und Parmesan servieren.'}]};
+  state = {
+    screen:(this.props.startScreen ?? 'liste')==='login'?'login':'list',
+    recipes:this.data, activeId:'shak', tab:'alle', q:'', seg:'zutaten', servings:4,
+    checked:{}, cookStep:0, cookDone:false, showCookIngr:false,
+    timerLeft:null, timerOn:false,
+    shopping:[{id:1,n:'Milch',a:1,u:'l',ck:false},{id:2,n:'Eier',a:10,u:'',ck:false},{id:3,n:'Feta',a:200,u:'g',ck:false},{id:4,n:'Sauerteigbrot',a:1,u:'',ck:true},{id:5,n:'Butter',a:250,u:'g',ck:true}],
+    newItem:'', nextId:6, cartMsg:null,
+    importUrl:'', importState:'form', importTitle:'Zitronen-Pasta mit Garnelen', imported:false,
+    email:'', pw:'', notes:'', notesDirty:false, notesSavedMsg:false
+  };
+  componentWillUnmount(){ clearInterval(this._iv); clearTimeout(this._to); }
+  fmt(n){ if(Number.isInteger(n)) return String(n); return String(Math.round(n*100)/100).replace('.',','); }
+  scaled(ing,f){
+    if(ing.a==null) return '';
+    let n=ing.a*f; if(n<=0) return '';
+    let v;
+    if(ing.c){ const near=Math.round(n); if(Math.abs(n-near)<=0.15&&near>=1) v=String(near); else { const lo=Math.max(1,Math.floor(n)),hi=Math.ceil(n); v=lo===hi?String(lo):lo+'–'+hi; } }
+    else if(n>=100) v=String(Math.round(n));
+    else if(n>=10) v=this.fmt(Math.round(n*2)/2);
+    else if(n>=1) v=this.fmt(Math.round(n*4)/4);
+    else v=this.fmt(Math.round(n*100)/100);
+    return (v+' '+(ing.u||'')).trim();
+  }
+  nav(screen,extra){ clearInterval(this._iv); this.setState({screen,timerOn:false,...extra}); }
+  openRecipe(r){ this.nav('detail',{activeId:r.id,servings:r.base,seg:'zutaten',checked:{},notes:'',notesDirty:false,notesSavedMsg:false,cartMsg:null}); }
+  active(){ return this.state.recipes.find(r=>r.id===this.state.activeId); }
+  patch(fields){ this.setState(s=>({recipes:s.recipes.map(r=>r.id===s.activeId?{...r,...fields}:r)})); }
+  startTimer(min){
+    clearInterval(this._iv);
+    this.setState(s=>({timerOn:true,timerLeft:s.timerLeft==null?min*60:s.timerLeft}));
+    this._iv=setInterval(()=>{ this.setState(s=>{ const t=(s.timerLeft??0)-1; if(t<=0){clearInterval(this._iv); return {timerLeft:0,timerOn:false};} return {timerLeft:t}; }); },1000);
+  }
+  chip(on){ return {display:'inline-flex',alignItems:'center',gap:'5px',background:on?'#3F9147':'#fff',color:on?'#fff':'#1C1C1E',fontSize:'14px',fontWeight:on?600:500,borderRadius:'999px',padding:'7px 15px',cursor:'pointer',boxShadow:on?'none':'0 1px 2px rgba(0,0,0,.04)'}; }
+  seg(on){ return {flex:1,textAlign:'center',background:on?'#fff':'transparent',borderRadius:'8px',padding:'7px 0',fontSize:'13.5px',fontWeight:on?600:500,color:on?'#1C1C1E':'#3C3C43',boxShadow:on?'0 1px 3px rgba(0,0,0,.08)':'none',cursor:'pointer'}; }
+  tabSt(on){ return {display:'flex',flexDirection:'column',alignItems:'center',gap:'3px',color:on?'#3F9147':'#8E8E93',width:'60px',cursor:'pointer'}; }
+  jump(on){ return {border:'none',font:'600 11.5px system-ui,sans-serif',padding:'7px 13px',borderRadius:'999px',cursor:'pointer',background:on?'#1a1a1a':'#fff',color:on?'#fff':'#444',boxShadow:'0 1px 3px rgba(0,0,0,.08)'}; }
+  renderVals(){
+    const s=this.state, r=this.active(), f=r?s.servings/r.base:1;
+    const q=s.q.trim().toLowerCase();
+    let list=s.recipes;
+    if(s.tab==='try') list=list.filter(x=>x.status==='try');
+    if(s.tab==='done') list=list.filter(x=>x.status==='done');
+    if(s.tab==='fav') list=list.filter(x=>x.fav);
+    if(q) list=list.filter(x=>x.title.toLowerCase().includes(q)||(x.cui||'').toLowerCase().includes(q)||x.ingr.some(i=>i.n.toLowerCase().includes(q)));
+    const deco=x=>({...x, open:()=>this.openRecipe(x),
+      meta:x.time+' Min · '+x.cat,
+      meta2:x.time+' Min'+(x.rating?' · ★ '+x.rating+',0':'')+(x.status==='done'?' · Gekocht':'')});
+    const showSections=s.tab==='alle'&&!q;
+    const tryAll=s.recipes.filter(x=>x.status==='try');
+    const tryList=(showSections?tryAll.slice(0,2):[]).map(deco);
+    const mainList=(showSections?s.recipes.filter(x=>x.status!=='try'||!tryAll.slice(0,2).includes(x)):list).map(deco);
+    const step=r?r.steps[s.cookStep]:null;
+    const tl=s.timerLeft, mm=tl!=null?Math.floor(tl/60):0, ss=tl!=null?tl%60:0;
+    const cooked=r&&r.status==='done';
+    const stars=[1,2,3,4,5].map(n=>({fill:r&&r.rating>=n?'#F5A623':'none',stroke:r&&r.rating>=n?'#F5A623':'#C7C7CC',set:()=>this.patch({rating:r.rating===n?null:n})}));
+    return {
+      isLogin:s.screen==='login', isList:s.screen==='list', isDetail:s.screen==='detail',
+      isCook:s.screen==='cook', isImport:s.screen==='import', isShopping:s.screen==='shopping',
+      showTabBar:s.screen==='list'||s.screen==='shopping',
+      jumpList:()=>this.nav('list'), jumpDetail:()=>this.openRecipe(s.recipes[0]),
+      jumpCook:()=>this.nav('cook',{activeId:s.activeId,cookStep:0,cookDone:false,timerLeft:null,showCookIngr:false}),
+      jumpImport:()=>this.nav('import',{importState:'form'}), jumpShop:()=>this.nav('shopping'), jumpLogin:()=>this.nav('login'),
+      jumpListStyle:this.jump(s.screen==='list'), jumpDetailStyle:this.jump(s.screen==='detail'), jumpCookStyle:this.jump(s.screen==='cook'),
+      jumpImportStyle:this.jump(s.screen==='import'), jumpShopStyle:this.jump(s.screen==='shopping'), jumpLoginStyle:this.jump(s.screen==='login'),
+      email:s.email, pw:s.pw, setEmail:e=>this.setState({email:e.target.value}), setPw:e=>this.setState({pw:e.target.value}),
+      login:()=>this.nav('list'),
+      q:s.q, setQ:e=>this.setState({q:e.target.value}),
+      chipAlleStyle:this.chip(s.tab==='alle'), chipTryStyle:this.chip(s.tab==='try'), chipDoneStyle:this.chip(s.tab==='done'),
+      chipFavStyle:{...this.chip(s.tab==='fav'),padding:'7px 12px'}, favChipFill:s.tab==='fav'?'#fff':'none',
+      tabAlle:()=>this.setState({tab:'alle'}), tabTry:()=>this.setState({tab:'try'}), tabDone:()=>this.setState({tab:'done'}), tabFav:()=>this.setState({tab:'fav'}),
+      showTrySection:showSections&&tryList.length>0&&(this.props.ansicht??'raster')==='raster',
+      tryCount:tryAll.length, tryList, mainList,
+      mainSectionLabel:showSections?'Alle Rezepte':'Ergebnisse · '+list.length,
+      hasResults:mainList.length>0||tryList.length>0, noResults:mainList.length===0&&tryList.length===0,
+      recipe:r?{...r, statusLabel:cooked?'Gekocht':'Zum Ausprobieren',
+        metaLine:[r.cat,r.cui,r.time+' Min'].filter(Boolean).join(' · ')+(r.rating?' · ★ '+r.rating+',0':'')}:{},
+      backToList:()=>this.nav('list'),
+      toggleFav:()=>this.patch({fav:!r.fav}), heartFill:r&&r.fav?'#C33D24':'none',
+      segZutStyle:this.seg(s.seg==='zutaten'), segStepStyle:this.seg(s.seg==='schritte'), segNoteStyle:this.seg(s.seg==='notizen'),
+      segZut:()=>this.setState({seg:'zutaten'}), segStep:()=>this.setState({seg:'schritte'}), segNote:()=>this.setState({seg:'notizen'}),
+      segIsZutaten:s.seg==='zutaten', segIsSchritte:s.seg==='schritte', segIsNotizen:s.seg==='notizen',
+      servings:s.servings, servingsHint:s.servings===(r?r.base:4)?'Originalmenge':'Original: '+(r?r.base:4)+' — Mengen umgerechnet',
+      decServ:()=>this.setState(x=>({servings:Math.max(1,x.servings-1)})), incServ:()=>this.setState(x=>({servings:Math.min(12,x.servings+1)})),
+      ingredients:r?r.ingr.map((ing,i)=>({n:ing.n, amt:this.scaled(ing,f),
+        toggle:()=>this.setState(x=>({checked:{...x.checked,[i]:!x.checked[i]}})),
+        nameStyle:s.checked[i]?{color:'#B0B0B5',textDecoration:'line-through'}:{color:'#1C1C1E'},
+        amtStyle:{color:s.servings!==(r?r.base:4)?'#3F9147':'#8E8E93',fontWeight:s.servings!==(r?r.base:4)?600:400,whiteSpace:'nowrap'}})):[],
+      addToCart:()=>{ this.setState(x=>{ const items=r.ingr.map((ing,i)=>({id:x.nextId+i,n:ing.n,a:null,u:'',ck:false,label:this.scaled(ing,f)})); return {shopping:[...x.shopping,...items],nextId:x.nextId+items.length,cartMsg:r.ingr.length+' Zutaten (für '+s.servings+' Portionen) hinzugefügt'}; }); this._to=setTimeout(()=>this.setState({cartMsg:null}),3500); },
+      cartMsg:s.cartMsg,
+      steps:r?r.steps.map((st,i)=>({nr:i+1,t:st.t})):[],
+      stars, statusBtnLabel:cooked?'Zurücksetzen':'Als gekocht markieren',
+      lastCookedLabel:r&&r.last?'Zuletzt gekocht: '+r.last:'Noch nicht gekocht',
+      toggleStatus:()=>this.patch(cooked?{status:'try'}:{status:'done',last:'13.08.2026'}),
+      notes:s.notes, setNotes:e=>this.setState({notes:e.target.value,notesDirty:true,notesSavedMsg:false}),
+      notesDirty:s.notesDirty, notesSavedMsg:s.notesSavedMsg, saveNotes:()=>this.setState({notesDirty:false,notesSavedMsg:true}),
+      goCook:()=>this.nav('cook',{cookStep:0,cookDone:false,timerLeft:null,showCookIngr:false}),
+      exitCook:()=>this.nav('detail'),
+      cookHeader:s.cookDone?'Fertig':'Schritt '+(s.cookStep+1)+' von '+(r?r.steps.length:0),
+      cookBarStyle:{display:'block',height:'100%',borderRadius:'2px',background:'#3F9147',width:(r?Math.min((s.cookStep+(s.cookDone?1:1))/r.steps.length,1)*100:0)+'%',transition:'width .3s'},
+      cookDone:s.cookDone, cookActive:!s.cookDone, stepCount:r?r.steps.length:0,
+      cookText:step?step.t:'', cookHasTimer:!!(step&&step.min&&!s.cookDone), cookHasIngr:!!(step&&step.ing&&!s.cookDone), cookIngrLine:step?step.ing:'',
+      timerDisplay:tl!=null?(mm+':'+String(ss).padStart(2,'0')+(tl===0?' — fertig!':'')):(step&&step.min?step.min+' Minuten':''),
+      timerBtnLabel:s.timerOn?'Pause':(tl!=null&&tl>0?'Weiter':'Start'),
+      toggleTimer:()=>{ if(s.timerOn){clearInterval(this._iv);this.setState({timerOn:false});} else this.startTimer(step.min); },
+      cookPrev:()=>{ if(s.cookDone) this.setState({cookDone:false}); else if(s.cookStep>0){clearInterval(this._iv);this.setState(x=>({cookStep:x.cookStep-1,timerLeft:null,timerOn:false}));} },
+      cookPrevStyle:{flex:1,height:'50px',borderRadius:'14px',background:'#E3E3E8',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',opacity:s.cookStep===0&&!s.cookDone?.45:1},
+      cookNext:()=>{ clearInterval(this._iv); if(r&&s.cookStep>=r.steps.length-1) this.setState({cookDone:true,timerOn:false}); else this.setState(x=>({cookStep:x.cookStep+1,timerLeft:null,timerOn:false})); },
+      cookNextLabel:r&&s.cookStep>=r.steps.length-1?'Fertig':'Weiter',
+      showCookIngr:s.showCookIngr, toggleCookIngr:()=>this.setState(x=>({showCookIngr:!x.showCookIngr})),
+      finishCooked:()=>{ this.patch({status:'done',last:'13.08.2026'}); this.nav('detail'); },
+      goImport:()=>this.nav('import',{importState:'form'}), goShopping:()=>this.nav('shopping'),
+      importForm:s.importState!=='preview', importPreview:s.importState==='preview', importBusy:s.importState==='busy',
+      importUrl:s.importUrl, setImportUrl:e=>this.setState({importUrl:e.target.value}),
+      extractLabel:s.importState==='busy'?'Extrahiere Rezept …':'Rezept extrahieren',
+      extractBtnStyle:{height:'50px',borderRadius:'14px',background:'#3F9147',display:'flex',alignItems:'center',justifyContent:'center',gap:'9px',cursor:'pointer',opacity:s.importUrl.trim()||s.importState==='busy'?1:.45},
+      extract:()=>{ if(!s.importUrl.trim()||s.importState==='busy') return; this.setState({importState:'busy'}); this._to=setTimeout(()=>this.setState({importState:'preview'}),1800); },
+      importTitle:s.importTitle, setImportTitle:e=>this.setState({importTitle:e.target.value}),
+      importBack:()=>this.setState({importState:'form'}),
+      saveImport:()=>{ const nr={...this.newRecipe,title:s.importTitle||this.newRecipe.title}; this.setState(x=>({recipes:x.imported?x.recipes.map(y=>y.id==='neu'?nr:y):[nr,...x.recipes],imported:true,activeId:'neu',servings:nr.base,seg:'zutaten',checked:{},screen:'detail',importUrl:'',importState:'form'})); },
+      shoppingHint:'Synchron auf allen Geräten — am PC planen, am Handy einkaufen.',
+      openItems:s.shopping.filter(x=>!x.ck).map(it=>({...it,amt:it.label??((it.a!=null?this.fmt(it.a)+' ':'')+(it.u||'')).trim(),toggle:()=>this.setState(x=>({shopping:x.shopping.map(y=>y.id===it.id?{...y,ck:!y.ck}:y)}))})),
+      doneItems:s.shopping.filter(x=>x.ck).map(it=>({...it,amt:it.label??((it.a!=null?this.fmt(it.a)+' ':'')+(it.u||'')).trim(),toggle:()=>this.setState(x=>({shopping:x.shopping.map(y=>y.id===it.id?{...y,ck:!y.ck}:y)}))})),
+      hasOpenItems:s.shopping.some(x=>!x.ck), hasDoneItems:s.shopping.some(x=>x.ck), doneCount:s.shopping.filter(x=>x.ck).length,
+      shoppingEmpty:s.shopping.length===0,
+      newItem:s.newItem, setNewItem:e=>this.setState({newItem:e.target.value}),
+      addItem:()=>{ if(!s.newItem.trim()) return; this.setState(x=>({shopping:[...x.shopping,{id:x.nextId,n:x.newItem.trim(),a:null,u:'',ck:false}],nextId:x.nextId+1,newItem:''})); },
+      removeChecked:()=>this.setState(x=>({shopping:x.shopping.filter(y=>!y.ck)}))
+    };
+  }
+}
+</script>
+</body>
+</html>

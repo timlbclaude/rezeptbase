@@ -21,7 +21,7 @@ function formatNumber(n) {
 }
 
 // Intelligente Rundung der skalierten Menge
-function formatScaled(ing, factor) {
+export function formatScaled(ing, factor) {
   if (ing.amount === null || ing.amount === undefined) return ''
   if (!ing.is_scalable) return formatNumber(Number(ing.amount))
 
@@ -48,6 +48,12 @@ function formatDate(d) {
   return `${day}.${m}.${y}`
 }
 
+const SEGMENTS = [
+  { key: 'zutaten', label: 'Zutaten' },
+  { key: 'schritte', label: 'Schritte' },
+  { key: 'notizen', label: 'Notizen' },
+]
+
 export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
   const [recipe, setRecipe] = useState(null)
   const [ingredients, setIngredients] = useState([])
@@ -57,8 +63,10 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
   const [servings, setServings] = useState(4)
   const [notes, setNotes] = useState('')
   const [notesSaved, setNotesSaved] = useState(true)
+  const [notesJustSaved, setNotesJustSaved] = useState(false)
   const [cartMessage, setCartMessage] = useState(null)
   const [cooking, setCooking] = useState(false)
+  const [seg, setSeg] = useState('zutaten')
 
   useEffect(() => {
     Promise.all([
@@ -86,9 +94,15 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
     }
   }
 
+  async function markCooked() {
+    await patch({ status: 'gekocht', last_cooked_at: new Date().toISOString().slice(0, 10) })
+  }
+
   async function saveNotes() {
     await patch({ notes: notes.trim() || null })
     setNotesSaved(true)
+    setNotesJustSaved(true)
+    setTimeout(() => setNotesJustSaved(false), 3000)
   }
 
   async function addToShoppingList() {
@@ -130,309 +144,318 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
       added++
     }
     setCartMessage(`${added} Zutaten (für ${servings} Portionen) auf der Einkaufsliste`)
-    setTimeout(() => setCartMessage(null), 4000)
+    setTimeout(() => setCartMessage(null), 3500)
   }
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-2xl">
-        <div className="h-56 skeleton" />
-        <div className="px-4 pt-5 space-y-3">
-          <div className="h-7 w-3/4 rounded skeleton" />
-          <div className="h-4 w-1/2 rounded skeleton" />
-          <div className="h-28 rounded-3xl skeleton" />
+      <div className="mx-auto max-w-2xl px-4 pt-4">
+        <div className="skeleton rounded-[20px]" style={{ height: 246 }} />
+        <div className="mt-5 space-y-3">
+          <div className="skeleton h-7 w-3/4 rounded" />
+          <div className="skeleton h-4 w-1/2 rounded" />
+          <div className="skeleton h-28 rounded-[16px]" />
         </div>
       </div>
     )
   }
   if (!recipe) {
-    return <p className="text-ink-500 text-center py-16">Rezept nicht gefunden.</p>
+    return <p className="text-ink-3 text-center py-16">Rezept nicht gefunden.</p>
   }
 
   const time = (recipe.prep_time_min ?? 0) + (recipe.cook_time_min ?? 0)
   const base = recipe.base_servings || 4
   const factor = servings / base
-  const sliderMax = Math.max(12, base)
   const isScaled = servings !== base
   const cooked = recipe.status === 'gekocht'
+  const steps = recipe.steps ?? []
+  const meta = [recipe.category, recipe.cuisine, time > 0 ? `${time} Min` : null, recipe.rating ? `★ ${recipe.rating},0` : null]
+    .filter(Boolean).join(' · ')
+
+  const cardCls = 'bg-card rounded-[16px] shadow-card'
 
   return (
-    <div className="mx-auto max-w-2xl pb-16 animate-rise">
+    <div className="mx-auto max-w-2xl animate-rise" style={{ paddingBottom: 110 }}>
       {cooking && (
         <CookMode
           recipe={recipe}
           ingredients={ingredients}
+          servings={servings}
           formatAmount={(ing) => formatScaled(ing, factor)}
+          onMarkCooked={markCooked}
           onClose={() => setCooking(false)}
         />
       )}
 
-      {recipe.video_embed_url ? (
-        <div className="aspect-video w-full bg-ink-900">
-          <iframe
-            src={recipe.video_embed_url}
-            title="Video"
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      ) : recipe.image_url ? (
-        <div className="relative">
-          <img src={recipe.image_url} alt="" className="w-full h-56 object-cover" />
-          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-ink-900/25 to-transparent" />
-        </div>
-      ) : null}
-
-      <div className="px-4 pt-4">
+      {/* Hero als Inset-Karte */}
+      <div className="relative mx-4 mt-4 rounded-[20px] overflow-hidden" style={{ height: recipe.video_embed_url ? undefined : 246 }}>
+        {recipe.video_embed_url ? (
+          <div className="aspect-video w-full bg-ink">
+            <iframe
+              src={recipe.video_embed_url}
+              title="Video"
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        ) : recipe.image_url ? (
+          <img src={recipe.image_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full grid place-content-center bg-fill text-ink-3">
+            <Icon name="utensils" size={34} strokeWidth={1.5} />
+          </div>
+        )}
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-sm text-brand-700 font-semibold mb-3 p-1 -ml-1 rounded-lg active:bg-brand-50"
+          className="absolute top-3 left-3 grid place-content-center w-[34px] h-[34px] rounded-full text-ink active:scale-95 transition"
+          style={{ background: 'rgb(255 255 255 / 0.9)' }}
+          aria-label="Zurück"
         >
-          <Icon name="arrowLeft" size={16} strokeWidth={2.2} />
-          Zurück
+          <Icon name="arrowLeft" size={17} strokeWidth={2.2} />
         </button>
+        <button
+          onClick={() => patch({ is_favorite: !recipe.is_favorite })}
+          className="absolute top-3 right-3 grid place-content-center w-[34px] h-[34px] rounded-full text-love active:scale-95 transition"
+          style={{ background: 'rgb(255 255 255 / 0.9)' }}
+          aria-label="Favorit"
+        >
+          <Icon name="heart" size={17} filled={recipe.is_favorite} strokeWidth={2} />
+        </button>
+        <span
+          className="absolute bottom-3 left-3 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-ink-2"
+          style={{ background: 'rgb(255 255 255 / 0.92)' }}
+        >
+          {cooked ? 'Gekocht' : 'Zum Ausprobieren'}
+        </span>
+      </div>
 
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="font-display text-3xl font-semibold text-ink-900 leading-tight tracking-tight">
-            {recipe.title}
-          </h1>
-          <button
-            onClick={() => patch({ is_favorite: !recipe.is_favorite })}
-            className={`shrink-0 grid place-content-center w-11 h-11 rounded-full border transition active:scale-95 ${
-              recipe.is_favorite
-                ? 'border-accent-200 bg-accent-50 text-accent-500'
-                : 'border-ink-200 bg-card text-ink-400'
-            }`}
-            aria-label="Favorit"
-          >
-            <Icon name="heart" size={20} filled={recipe.is_favorite} />
-          </button>
-        </div>
-        {recipe.description && <p className="text-ink-500 mt-2 leading-relaxed">{recipe.description}</p>}
+      <div className="px-4 pt-4">
+        <h1 className="text-[26px] font-bold text-ink leading-tight">{recipe.title}</h1>
+        {meta && <p className="text-[14px] text-ink-3 mt-1">{meta}</p>}
+        {recipe.description && <p className="text-[14.5px] text-ink-2 mt-2 leading-relaxed">{recipe.description}</p>}
 
-        <div className="flex flex-wrap gap-2 mt-4 text-xs items-center">
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-semibold ${
-              cooked ? 'bg-brand-100 text-brand-700' : 'bg-try-100 text-try-700'
-            }`}
-          >
-            <Icon name={cooked ? 'checkCircle' : 'sprout'} size={13} strokeWidth={2.4} />
-            {cooked ? 'Schon gekocht' : 'Zum Ausprobieren'}
-          </span>
-          {recipe.category && (
-            <span className="rounded-full bg-ink-100 text-ink-700 px-3 py-1.5 font-medium">{recipe.category}</span>
-          )}
-          {recipe.cuisine && (
-            <span className="rounded-full bg-ink-100 text-ink-700 px-3 py-1.5 font-medium">{recipe.cuisine}</span>
-          )}
-          {time > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-ink-100 text-ink-700 px-3 py-1.5 font-medium">
-              <Icon name="clock" size={13} strokeWidth={2.2} />
-              {time} Min
-            </span>
-          )}
-        </div>
-
-        {/* Kochstatus + Bewertung */}
-        <div className="mt-5 rounded-3xl bg-card border border-ink-100 shadow-card p-4 space-y-3.5">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+        {/* Segmented Control */}
+        <div className="flex bg-fill rounded-[10px] p-0.5 mt-4">
+          {SEGMENTS.map((s) => (
             <button
-              onClick={toggleStatus}
-              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition active:scale-[0.98] ${
-                cooked
-                  ? 'border border-ink-200 text-ink-700 bg-card'
-                  : 'bg-brand-700 text-paper shadow-card active:bg-brand-800'
+              key={s.key}
+              onClick={() => setSeg(s.key)}
+              className={`flex-1 rounded-[8px] py-1.5 text-[13.5px] font-semibold transition ${
+                seg === s.key ? 'bg-card text-ink' : 'text-ink-2'
               }`}
+              style={seg === s.key ? { boxShadow: '0 1px 3px rgb(0 0 0 / 0.08)' } : {}}
             >
-              <Icon name={cooked ? 'sprout' : 'checkCircle'} size={16} strokeWidth={2.2} />
-              {cooked ? 'Zurück auf „Zum Ausprobieren“' : 'Als gekocht markieren'}
+              {s.label}
             </button>
-            {recipe.last_cooked_at && (
-              <span className="text-xs text-ink-400">Zuletzt gekocht: {formatDate(recipe.last_cooked_at)}</span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm text-ink-500 mr-1">Bewertung</span>
-            {[1, 2, 3, 4, 5].map((s) => (
-              <button
-                key={s}
-                onClick={() => patch({ rating: recipe.rating === s ? null : s })}
-                className={`transition active:scale-90 ${recipe.rating >= s ? 'text-amber-500' : 'text-ink-300'}`}
-                aria-label={`${s} Sterne`}
-              >
-                <Icon name="star" size={22} filled={recipe.rating >= s} strokeWidth={1.6} />
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
 
-        {/* Portionsrechner */}
-        <div className="mt-4 rounded-3xl bg-card border border-ink-100 shadow-card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="inline-flex items-center gap-2 font-semibold text-ink-900">
-              <Icon name="users" size={17} strokeWidth={2} className="text-brand-700" />
-              {servings} {servings === 1 ? 'Portion' : 'Portionen'}
-            </span>
-            <span className="text-xs text-ink-400">{isScaled ? `Original: ${base}` : 'Originalmenge'}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setServings((s) => Math.max(1, s - 1))}
-              className="shrink-0 grid place-content-center w-10 h-10 rounded-full border border-ink-200 bg-card text-ink-700 active:bg-ink-100 transition"
-              aria-label="Weniger Portionen"
-            >
-              <Icon name="minus" size={18} strokeWidth={2.4} />
-            </button>
-            <input
-              type="range"
-              min="1"
-              max={sliderMax}
-              step="1"
-              value={servings}
-              onChange={(e) => setServings(Number(e.target.value))}
-              className="flex-1"
-              aria-label="Portionen"
-            />
-            <button
-              onClick={() => setServings((s) => Math.min(sliderMax, s + 1))}
-              className="shrink-0 grid place-content-center w-10 h-10 rounded-full border border-ink-200 bg-card text-ink-700 active:bg-ink-100 transition"
-              aria-label="Mehr Portionen"
-            >
-              <Icon name="plus" size={18} strokeWidth={2.4} />
-            </button>
-          </div>
-        </div>
+        {/* ---- Tab: Zutaten ---- */}
+        {seg === 'zutaten' && (
+          <div className="mt-4 space-y-3">
+            {/* Portionen-Karte mit Stepper */}
+            <div className={`${cardCls} rounded-[14px] flex items-center justify-between px-4 py-3`}>
+              <div>
+                <p className="text-[15.5px] font-semibold text-ink">Portionen</p>
+                <p className="text-[12px] text-ink-3 mt-0.5">
+                  {isScaled ? `Original: ${base} — Mengen umgerechnet` : 'Originalmenge'}
+                </p>
+              </div>
+              <div className="flex items-center bg-fill rounded-[9px] overflow-hidden">
+                <button
+                  onClick={() => setServings((s) => Math.max(1, s - 1))}
+                  className="px-3.5 py-2 text-ink-2 active:bg-black/5"
+                  aria-label="Weniger Portionen"
+                >
+                  <Icon name="minus" size={15} strokeWidth={2.4} />
+                </button>
+                <span className="w-px self-stretch my-1.5" style={{ background: 'var(--color-separator)' }} />
+                <span className="px-3 text-[15px] font-bold text-tint min-w-8 text-center">{servings}</span>
+                <span className="w-px self-stretch my-1.5" style={{ background: 'var(--color-separator)' }} />
+                <button
+                  onClick={() => setServings((s) => Math.min(24, s + 1))}
+                  className="px-3.5 py-2 text-ink-2 active:bg-black/5"
+                  aria-label="Mehr Portionen"
+                >
+                  <Icon name="plus" size={15} strokeWidth={2.4} />
+                </button>
+              </div>
+            </div>
 
-        {/* Zutaten */}
-        <div className="flex items-center justify-between mt-7 mb-3">
-          <h2 className="font-display text-xl font-semibold text-ink-900">Zutaten</h2>
-          <button
-            onClick={addToShoppingList}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 p-1.5 -mr-1.5 rounded-lg active:bg-brand-50"
-          >
-            <Icon name="cart" size={16} strokeWidth={2} />
-            Auf die Einkaufsliste
-          </button>
-        </div>
-        {cartMessage && (
-          <p className="flex items-center gap-2 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 mb-3">
-            <Icon name="check" size={16} strokeWidth={2.4} />
-            {cartMessage}
-          </p>
-        )}
-        <ul className="rounded-3xl bg-card border border-ink-100 shadow-card divide-y divide-ink-100 overflow-hidden">
-          {ingredients.map((ing) => (
-            <li key={ing.id}>
-              <label className="flex items-center gap-3 px-4 py-3 text-ink-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={!!checked[ing.id]}
-                  onChange={() => setChecked((c) => ({ ...c, [ing.id]: !c[ing.id] }))}
-                />
-                <span className={checked[ing.id] ? 'line-through text-ink-400' : ''}>
-                  <strong
-                    className={`font-semibold ${
-                      isScaled && ing.is_scalable && ing.amount !== null ? 'text-brand-700' : 'text-ink-900'
+            {/* Zutaten-Karte */}
+            <div className={`${cardCls} overflow-hidden`}>
+              {ingredients.map((ing, i) => (
+                <button
+                  key={ing.id}
+                  onClick={() => setChecked((c) => ({ ...c, [ing.id]: !c[ing.id] }))}
+                  className="relative w-full flex items-center justify-between gap-3 px-4 py-3 text-left active:bg-black/[0.03] transition"
+                >
+                  <span className={`text-[15.5px] ${checked[ing.id] ? 'line-through text-ink-4' : 'text-ink'}`}>
+                    {ing.name}
+                  </span>
+                  <span
+                    className={`shrink-0 text-[15px] ${
+                      checked[ing.id]
+                        ? 'line-through text-ink-4'
+                        : isScaled && ing.is_scalable && ing.amount !== null
+                          ? 'text-tint font-semibold'
+                          : 'text-ink-3'
                     }`}
                   >
-                    {formatScaled(ing, factor)} {ing.unit ?? ''}
-                  </strong>{' '}
-                  {ing.name}
-                </span>
-              </label>
-            </li>
-          ))}
-        </ul>
-        {isScaled && (
-          <p className="text-xs text-ink-400 mt-2">
-            Mengen umgerechnet auf {servings} {servings === 1 ? 'Portion' : 'Portionen'} und sinnvoll gerundet.
-          </p>
-        )}
-
-        {/* Zubereitung */}
-        <div className="flex items-center justify-between mt-7 mb-3">
-          <h2 className="font-display text-xl font-semibold text-ink-900">Zubereitung</h2>
-          {(recipe.steps ?? []).length > 0 && (
-            <button
-              onClick={() => setCooking(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-accent-500 text-paper text-sm font-semibold px-3.5 py-2 shadow-card transition active:scale-[0.98] active:bg-accent-600"
-            >
-              <Icon name="flame" size={15} strokeWidth={2.2} />
-              Kochmodus
-            </button>
-          )}
-        </div>
-        <ol className="space-y-3">
-          {(recipe.steps ?? []).map((s) => (
-            <li key={s.nr} className="flex gap-3.5 rounded-2xl bg-card border border-ink-100 p-4">
-              <span className="shrink-0 grid place-content-center w-8 h-8 rounded-xl bg-brand-700 text-paper text-sm font-bold">
-                {s.nr}
-              </span>
-              <p className="text-ink-700 leading-relaxed pt-1">{s.text}</p>
-            </li>
-          ))}
-        </ol>
-
-        {/* Notizen */}
-        <h2 className="font-display text-xl font-semibold text-ink-900 mt-7 mb-3">Meine Notizen</h2>
-        <textarea
-          rows={3}
-          placeholder="z.B. weniger Salz nehmen, Beilage: Reis …"
-          value={notes}
-          onChange={(e) => { setNotes(e.target.value); setNotesSaved(false) }}
-          className="w-full rounded-2xl border border-ink-200 bg-card px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100 placeholder:text-ink-400"
-        />
-        {!notesSaved && (
-          <button
-            onClick={saveNotes}
-            className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 p-1.5 -ml-1.5 rounded-lg active:bg-brand-50"
-          >
-            <Icon name="notebookPen" size={15} strokeWidth={2} />
-            Notizen speichern
-          </button>
-        )}
-
-        {recipe.source_url && (
-          <p className="mt-7">
-            <a
-              href={recipe.source_url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700"
-            >
-              <Icon name="externalLink" size={15} strokeWidth={2} />
-              Originalquelle öffnen
-            </a>
-          </p>
-        )}
-
-        <div className="mt-10 border-t border-ink-200 pt-4">
-          {confirmDelete ? (
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-sm text-ink-700">Wirklich löschen?</span>
+                    {[formatScaled(ing, factor), ing.unit].filter(Boolean).join(' ')}
+                  </span>
+                  {i < ingredients.length - 1 && (
+                    <span className="absolute bottom-0 left-4 right-0 pointer-events-none" style={{ height: 0.5, background: 'var(--color-separator)' }} />
+                  )}
+                </button>
+              ))}
               <button
-                onClick={async () => { await supabase.from('recipes').delete().eq('id', recipeId); onDeleted() }}
-                className="text-sm font-semibold text-accent-600"
+                onClick={addToShoppingList}
+                className="w-full flex items-center gap-2 px-4 py-3.5 text-[15px] font-semibold text-tint active:bg-black/[0.03] transition"
+                style={{ boxShadow: 'inset 0 0.5px 0 var(--color-separator)' }}
               >
-                Ja, löschen
-              </button>
-              <button onClick={() => setConfirmDelete(false)} className="text-sm text-ink-500">
-                Abbrechen
+                <Icon name="bag" size={16} strokeWidth={2} />
+                Alles auf die Einkaufsliste
               </button>
             </div>
-          ) : (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="inline-flex items-center gap-1.5 text-sm text-ink-400"
-            >
-              <Icon name="trash" size={15} />
-              Rezept löschen
-            </button>
-          )}
-        </div>
+            {cartMessage && (
+              <p className="flex items-center gap-2 rounded-[12px] bg-tint-soft px-4 py-3 text-[13.5px] font-medium text-tint">
+                <Icon name="check" size={15} strokeWidth={2.6} />
+                {cartMessage}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ---- Tab: Schritte ---- */}
+        {seg === 'schritte' && (
+          <div className={`${cardCls} mt-4 overflow-hidden`}>
+            {steps.length === 0 && <p className="px-4 py-4 text-[14px] text-ink-3">Keine Schritte hinterlegt.</p>}
+            {steps.map((s, i) => (
+              <div key={s.nr ?? i} className="relative flex gap-3.5 px-4 py-3.5">
+                <span className="shrink-0 grid place-content-center w-[26px] h-[26px] rounded-full bg-fill text-[13px] font-bold text-ink-2">
+                  {s.nr ?? i + 1}
+                </span>
+                <p className="text-[14.5px] text-ink-2 pt-0.5" style={{ lineHeight: 1.45 }}>{s.text}</p>
+                {i < steps.length - 1 && (
+                  <span className="absolute bottom-0 left-4 right-0 pointer-events-none" style={{ height: 0.5, background: 'var(--color-separator)' }} />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ---- Tab: Notizen ---- */}
+        {seg === 'notizen' && (
+          <div className="mt-4 space-y-3">
+            <div className={`${cardCls} rounded-[14px] px-4 py-3.5 flex items-center justify-between`}>
+              <span className="text-[15.5px] font-semibold text-ink">Bewertung</span>
+              <span className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => patch({ rating: recipe.rating === s ? null : s })}
+                    className="active:scale-90 transition"
+                    style={{ color: recipe.rating >= s ? 'var(--color-star)' : '#C7C7CC' }}
+                    aria-label={`${s} Sterne`}
+                  >
+                    <Icon name="star" size={26} filled={recipe.rating >= s} strokeWidth={1.7} />
+                  </button>
+                ))}
+              </span>
+            </div>
+
+            <div className={`${cardCls} rounded-[14px] px-4 py-3.5 flex items-center justify-between gap-3 flex-wrap`}>
+              <div>
+                <p className="text-[15.5px] font-semibold text-ink">{cooked ? 'Gekocht' : 'Zum Ausprobieren'}</p>
+                <p className="text-[12.5px] text-ink-3 mt-0.5">
+                  {recipe.last_cooked_at ? `Zuletzt gekocht: ${formatDate(recipe.last_cooked_at)}` : 'Noch nicht gekocht'}
+                </p>
+              </div>
+              <button
+                onClick={toggleStatus}
+                className="rounded-full bg-fill px-4 py-2 text-[13.5px] font-semibold text-ink-2 active:opacity-80 transition"
+              >
+                {cooked ? 'Zurücksetzen' : 'Als gekocht markieren'}
+              </button>
+            </div>
+
+            <div>
+              <textarea
+                rows={4}
+                placeholder="z.B. weniger Salz nehmen, Beilage: Reis …"
+                value={notes}
+                onChange={(e) => { setNotes(e.target.value); setNotesSaved(false) }}
+                className={`${cardCls} rounded-[14px] w-full px-4 py-3.5 text-[15px] outline-none border border-transparent focus:border-tint focus:ring-4 focus:ring-tint-soft placeholder:text-ink-3`}
+              />
+              {!notesSaved && (
+                <button
+                  onClick={saveNotes}
+                  className="mt-2 rounded-full bg-tint px-4 py-2 text-[13.5px] font-semibold text-white active:bg-tint-dark transition"
+                >
+                  Notizen speichern
+                </button>
+              )}
+              {notesSaved && notesJustSaved && (
+                <p className="mt-2 text-[13.5px] font-medium text-tint">Gespeichert.</p>
+              )}
+            </div>
+
+            {recipe.source_url && (
+              <a
+                href={recipe.source_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-tint pt-1"
+              >
+                <Icon name="externalLink" size={15} strokeWidth={2} />
+                Originalquelle öffnen
+              </a>
+            )}
+
+            <div className="pt-3">
+              {confirmDelete ? (
+                <span className="text-[14px] text-ink-2">
+                  Wirklich löschen?{' '}
+                  <button
+                    onClick={async () => { await supabase.from('recipes').delete().eq('id', recipeId); onDeleted() }}
+                    className="font-semibold text-love"
+                  >
+                    Ja, löschen
+                  </button>{' '}
+                  <button onClick={() => setConfirmDelete(false)} className="text-ink-3">Abbrechen</button>
+                </span>
+              ) : (
+                <button onClick={() => setConfirmDelete(true)} className="text-[14px] text-ink-3">
+                  Rezept löschen
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Fixe CTA-Leiste */}
+      {steps.length > 0 && (
+        <div
+          className="fixed bottom-0 inset-x-0 z-10"
+          style={{
+            background: 'linear-gradient(to top, var(--color-bg) 60%, transparent)',
+            padding: '12px 16px max(28px, env(safe-area-inset-bottom))',
+          }}
+        >
+          <div className="mx-auto max-w-2xl">
+            <button
+              onClick={() => setCooking(true)}
+              className="w-full h-[52px] rounded-[14px] bg-tint text-white text-[16.5px] font-semibold flex items-center justify-center gap-2 active:bg-tint-dark active:scale-[0.99] transition"
+            >
+              <Icon name="flame" size={18} strokeWidth={2} />
+              Kochmodus starten
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

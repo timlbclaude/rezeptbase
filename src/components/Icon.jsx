@@ -133,6 +133,35 @@ const PATHS = {
       <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" />
     </>
   ),
+  book: (
+    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20" />
+  ),
+  plusCircle: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 12h8" />
+      <path d="M12 8v8" />
+    </>
+  ),
+  bag: (
+    <>
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+      <path d="M3 6h18" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </>
+  ),
+  user: (
+    <>
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </>
+  ),
+  pause: (
+    <>
+      <rect x="14" y="4" width="4" height="16" rx="1" />
+      <rect x="6" y="4" width="4" height="16" rx="1" />
+    </>
+  ),
 }
 
 export default function Icon({ name, size = 20, strokeWidth = 1.8, filled = false, className = '' }) {

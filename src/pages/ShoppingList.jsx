@@ -9,12 +9,21 @@ function fmt(a) {
   return String(Math.round(n * 100) / 100).replace('.', ',')
 }
 
-export default function ShoppingList({ onBack }) {
+// Freitext wie „250 g Mehl" in Menge/Einheit/Name zerlegen (optional)
+function parseEntry(text) {
+  const m = /^(\d+(?:[.,]\d+)?)\s*([a-zA-ZäöüÄÖÜ.]{0,12})?\s+(.{2,})$/.exec(text.trim())
+  if (!m) return { name: text.trim(), amount: null, unit: null }
+  return {
+    amount: Number(m[1].replace(',', '.')),
+    unit: m[2]?.trim() || null,
+    name: m[3].trim(),
+  }
+}
+
+export default function ShoppingList() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
-  const [newName, setNewName] = useState('')
-  const [newAmount, setNewAmount] = useState('')
-  const [newUnit, setNewUnit] = useState('')
+  const [newText, setNewText] = useState('')
   const [confirmClear, setConfirmClear] = useState(false)
 
   function load() {
@@ -39,20 +48,15 @@ export default function ShoppingList({ onBack }) {
 
   async function addManual(e) {
     e.preventDefault()
-    if (!newName.trim()) return
+    if (!newText.trim()) return
+    const parsed = parseEntry(newText)
     const { data } = await supabase
       .from('shopping_list')
-      .insert({
-        ingredient_name: newName.trim(),
-        amount: newAmount === '' ? null : Number(String(newAmount).replace(',', '.')),
-        unit: newUnit.trim() || null,
-      })
+      .insert({ ingredient_name: parsed.name, amount: parsed.amount, unit: parsed.unit })
       .select('*')
       .single()
     if (data) setItems((xs) => [...xs, data])
-    setNewName('')
-    setNewAmount('')
-    setNewUnit('')
+    setNewText('')
   }
 
   async function removeChecked() {
@@ -72,137 +76,115 @@ export default function ShoppingList({ onBack }) {
   const open = items.filter((x) => !x.checked)
   const done = items.filter((x) => x.checked)
 
-  const inputCls =
-    'rounded-xl border border-ink-200 bg-card px-3 py-2.5 text-sm outline-none transition ' +
-    'focus:border-brand-500 focus:ring-4 focus:ring-brand-100 placeholder:text-ink-400'
+  function Row({ item, dimmed, last }) {
+    return (
+      <button
+        onClick={() => toggle(item)}
+        className="relative w-full flex items-center gap-3 px-4 py-3 text-left active:bg-black/[0.03] transition"
+      >
+        <input type="checkbox" className="checkbox-circle pointer-events-none" checked={item.checked} readOnly tabIndex={-1} />
+        <span className={`text-[15.5px] ${dimmed ? 'text-ink-3 line-through' : 'text-ink'}`}>
+          {item.amount !== null && <strong className="font-semibold">{fmt(item.amount)} {item.unit ?? ''} </strong>}
+          {item.ingredient_name}
+        </span>
+        {!last && (
+          <span className="absolute bottom-0 pointer-events-none" style={{ left: 52, right: 0, height: 0.5, background: 'var(--color-separator)' }} />
+        )}
+      </button>
+    )
+  }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-5 pb-24 animate-rise">
-      <button
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-sm text-brand-700 font-semibold mb-3 p-1 -ml-1 rounded-lg active:bg-brand-50"
-      >
-        <Icon name="arrowLeft" size={16} strokeWidth={2.2} />
-        Zurück
-      </button>
-      <div className="flex items-center gap-3 mb-1">
-        <span className="grid place-content-center w-10 h-10 rounded-2xl bg-brand-100 text-brand-700">
-          <Icon name="cart" size={20} strokeWidth={1.9} />
-        </span>
-        <h1 className="font-display text-3xl font-semibold text-ink-900 tracking-tight">Einkaufsliste</h1>
+    <main className="mx-auto max-w-2xl px-4 pt-5 animate-rise" style={{ paddingBottom: 190 }}>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-[34px] font-bold text-ink" style={{ letterSpacing: '0.3px' }}>Einkauf</h1>
+        {done.length > 0 && (
+          <button onClick={removeChecked} className="text-[14px] font-semibold text-tint">
+            Erledigte entfernen
+          </button>
+        )}
       </div>
-      <p className="text-sm text-ink-500 mb-6 ml-13">
-        Synchron auf allen Geräten – am PC planen, am Handy einkaufen.
-      </p>
+      <p className="text-[13.5px] text-ink-3 mb-5">Synchron auf allen Geräten – am PC planen, am Handy einkaufen.</p>
 
       {loading ? (
-        <div className="space-y-2">
-          <div className="h-12 rounded-2xl skeleton" />
-          <div className="h-12 rounded-2xl skeleton" />
-          <div className="h-12 rounded-2xl skeleton" />
+        <div className="bg-card rounded-[16px] shadow-card overflow-hidden">
+          <div className="skeleton h-12 m-3 rounded-[10px]" />
+          <div className="skeleton h-12 m-3 rounded-[10px]" />
         </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="inline-grid place-content-center w-16 h-16 rounded-3xl bg-ink-100 text-ink-400 mb-4">
-            <Icon name="cart" size={28} strokeWidth={1.5} />
+        <div className="text-center py-14">
+          <div className="inline-grid place-content-center w-14 h-14 rounded-[18px] bg-fill text-ink-3 mb-4">
+            <Icon name="bag" size={26} strokeWidth={1.6} />
           </div>
-          <h2 className="font-display text-lg font-semibold text-ink-900 mb-1">Noch leer</h2>
-          <p className="text-ink-500 text-sm max-w-xs mx-auto">
-            Öffne ein Rezept und tippe auf „Auf die Einkaufsliste“ – oder füge unten selbst etwas hinzu.
+          <h2 className="text-[16px] font-semibold text-ink mb-1">Noch leer</h2>
+          <p className="text-[13.5px] text-ink-3 max-w-xs mx-auto">
+            Öffne ein Rezept und tippe auf „Alles auf die Einkaufsliste“ – oder füge unten selbst etwas hinzu.
           </p>
         </div>
       ) : (
         <>
           {open.length > 0 && (
-            <ul className="rounded-3xl bg-card border border-ink-100 shadow-card divide-y divide-ink-100 overflow-hidden">
-              {open.map((item) => (
-                <li key={item.id}>
-                  <label className="flex items-center gap-3 px-4 py-3 text-ink-700 cursor-pointer">
-                    <input type="checkbox" className="checkbox" checked={false} onChange={() => toggle(item)} />
-                    <span>
-                      <strong className="font-semibold text-ink-900">
-                        {fmt(item.amount)} {item.unit ?? ''}
-                      </strong>{' '}
-                      {item.ingredient_name}
-                    </span>
-                  </label>
-                </li>
+            <div className="bg-card rounded-[16px] shadow-card overflow-hidden">
+              {open.map((item, i) => (
+                <Row key={item.id} item={item} last={i === open.length - 1} />
               ))}
-            </ul>
+            </div>
           )}
           {done.length > 0 && (
             <>
-              <p className="text-xs font-semibold uppercase tracking-wider text-ink-400 mt-6 mb-2">
-                Im Wagen ({done.length})
+              <p className="text-[13px] font-semibold uppercase text-ink-3 mt-6 mb-2" style={{ letterSpacing: '0.03em' }}>
+                Im Wagen · {done.length}
               </p>
-              <ul className="rounded-3xl bg-card/60 border border-ink-100 divide-y divide-ink-100 overflow-hidden">
-                {done.map((item) => (
-                  <li key={item.id}>
-                    <label className="flex items-center gap-3 px-4 py-3 text-ink-400 cursor-pointer">
-                      <input type="checkbox" className="checkbox" checked onChange={() => toggle(item)} />
-                      <span className="line-through">
-                        {fmt(item.amount)} {item.unit ?? ''} {item.ingredient_name}
-                      </span>
-                    </label>
-                  </li>
+              <div className="bg-card rounded-[16px] shadow-card overflow-hidden" style={{ opacity: 0.75 }}>
+                {done.map((item, i) => (
+                  <Row key={item.id} item={item} dimmed last={i === done.length - 1} />
                 ))}
-              </ul>
+              </div>
             </>
           )}
+          <div className="mt-5">
+            {confirmClear ? (
+              <span className="text-[14px] text-ink-2">
+                Wirklich alles löschen?{' '}
+                <button onClick={clearAll} className="font-semibold text-love">Ja</button>{' '}
+                <button onClick={() => setConfirmClear(false)} className="text-ink-3">Nein</button>
+              </span>
+            ) : (
+              <button onClick={() => setConfirmClear(true)} className="text-[14px] text-ink-3">
+                Liste leeren
+              </button>
+            )}
+          </div>
         </>
       )}
 
-      <form onSubmit={addManual} className="mt-6 flex gap-2">
-        <input
-          className={inputCls + ' w-18'}
-          placeholder="Menge"
-          inputMode="decimal"
-          value={newAmount}
-          onChange={(e) => setNewAmount(e.target.value)}
-        />
-        <input
-          className={inputCls + ' w-18'}
-          placeholder="Einh."
-          value={newUnit}
-          onChange={(e) => setNewUnit(e.target.value)}
-        />
-        <input
-          className={inputCls + ' flex-1'}
-          placeholder="Artikel hinzufügen …"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-        />
-        <button
-          type="submit"
-          className="grid place-content-center rounded-xl bg-brand-700 text-paper w-11 shadow-card transition active:bg-brand-800 active:scale-95"
-          aria-label="Hinzufügen"
-        >
-          <Icon name="plus" size={18} strokeWidth={2.4} />
-        </button>
-      </form>
-
-      {items.length > 0 && (
-        <div className="mt-6 flex items-center gap-5 text-sm">
-          {done.length > 0 && (
-            <button onClick={removeChecked} className="inline-flex items-center gap-1.5 font-semibold text-brand-700">
-              <Icon name="check" size={15} strokeWidth={2.4} />
-              Erledigte entfernen
-            </button>
-          )}
-          {confirmClear ? (
-            <span className="text-ink-700">
-              Wirklich alles löschen?{' '}
-              <button onClick={clearAll} className="font-semibold text-accent-600">Ja</button>{' '}
-              <button onClick={() => setConfirmClear(false)} className="text-ink-500">Nein</button>
-            </span>
-          ) : (
-            <button onClick={() => setConfirmClear(true)} className="inline-flex items-center gap-1.5 text-ink-400">
-              <Icon name="trash" size={15} />
-              Liste leeren
-            </button>
-          )}
+      {/* Hinzufügen-Zeile fix über der Tab-Bar */}
+      <form
+        onSubmit={addManual}
+        className="fixed inset-x-0 z-10 flex justify-center"
+        style={{
+          bottom: 'calc(max(24px, env(safe-area-inset-bottom)) + 58px)',
+          background: 'linear-gradient(to top, var(--color-bg) 70%, transparent)',
+          padding: '14px 16px 10px',
+        }}
+      >
+        <div className="flex gap-2 w-full max-w-2xl">
+          <input
+            className="flex-1 rounded-[12px] bg-card shadow-card px-4 py-3 text-[16px] outline-none border border-transparent focus:border-tint focus:ring-4 focus:ring-tint-soft placeholder:text-ink-3"
+            placeholder="Artikel hinzufügen …"
+            value={newText}
+            onChange={(e) => setNewText(e.target.value)}
+          />
+          <button
+            type="submit"
+            className="grid place-content-center rounded-[12px] bg-tint text-white shrink-0 active:bg-tint-dark active:scale-95 transition"
+            style={{ width: 46, height: 46 }}
+            aria-label="Hinzufügen"
+          >
+            <Icon name="plus" size={19} strokeWidth={2.4} />
+          </button>
         </div>
-      )}
-    </div>
+      </form>
+    </main>
   )
 }

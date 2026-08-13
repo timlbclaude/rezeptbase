@@ -110,32 +110,45 @@ export default function ImportPage({ onDone, onCancel }) {
   }
 
   const inputCls =
-    'w-full rounded-xl border border-ink-200 bg-card px-3 py-2.5 text-sm outline-none transition ' +
-    'focus:border-brand-500 focus:ring-4 focus:ring-brand-100 placeholder:text-ink-400'
-  const labelCls = 'text-xs font-semibold uppercase tracking-wider text-ink-500'
+    'w-full rounded-[12px] bg-card shadow-card px-3.5 py-2.5 text-[15px] outline-none border border-transparent ' +
+    'transition focus:border-tint focus:ring-4 focus:ring-tint-soft placeholder:text-ink-3'
+  const labelCls = 'text-[12px] font-semibold uppercase tracking-[0.03em] text-ink-3'
+
+  const Header = (
+    <div className="flex items-center justify-between mb-1">
+      <h1 className="text-[34px] font-bold text-ink" style={{ letterSpacing: '0.3px' }}>Import</h1>
+      <button
+        onClick={onCancel}
+        className="grid place-content-center w-[34px] h-[34px] rounded-full bg-fill text-ink-2 active:scale-95 transition"
+        aria-label="Schließen"
+      >
+        <Icon name="x" size={16} strokeWidth={2.2} />
+      </button>
+    </div>
+  )
 
   // ---------- Schritt 2: Vorschau ----------
   if (preview) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-6 pb-32 animate-rise">
-        <h2 className="font-display text-2xl font-semibold text-ink-900 mb-1">Rezept prüfen</h2>
-        <p className="text-sm text-ink-500 mb-5">
+      <div className="mx-auto max-w-2xl px-4 pt-5 animate-rise" style={{ paddingBottom: 130 }}>
+        {Header}
+        <p className="text-[14.5px] text-ink-3 mb-5">
           Die KI hat Folgendes extrahiert – du kannst alles korrigieren, bevor es gespeichert wird.
         </p>
         {duplicate && (
-          <div className="mb-5 rounded-2xl bg-try-100 border border-amber-200 px-4 py-3 text-sm text-try-700">
+          <div className="mb-4 rounded-[12px] bg-fill px-4 py-3 text-[13.5px] text-ink-2">
             Diese Quelle wurde schon einmal importiert. Du kannst trotzdem speichern.
           </div>
         )}
 
         {preview.image_url && (
-          <img src={preview.image_url} alt="" className="w-full h-48 object-cover rounded-3xl shadow-card mb-5" />
+          <img src={preview.image_url} alt="" className="w-full object-cover rounded-[16px] shadow-card mb-5" style={{ height: 150 }} />
         )}
 
         <div className="space-y-4">
           <div className="space-y-1.5">
             <label className={labelCls}>Titel</label>
-            <input className={inputCls} value={preview.title}
+            <input className={inputCls + ' !text-[16px] font-semibold'} value={preview.title}
               onChange={(e) => setPreview({ ...preview, title: e.target.value })} />
           </div>
           <div className="space-y-1.5">
@@ -180,25 +193,25 @@ export default function ImportPage({ onDone, onCancel }) {
             <div className="space-y-2 mt-2">
               {preview.ingredients.map((ing, i) => (
                 <div key={i} className="flex gap-2">
-                  <input className={inputCls + ' !w-20'} placeholder="Menge" inputMode="decimal"
+                  <input className={inputCls + ' !w-18'} placeholder="Menge" inputMode="decimal"
                     value={ing.amount ?? ''}
                     onChange={(e) => setIngredient(i, 'amount', e.target.value)} />
-                  <input className={inputCls + ' !w-20'} placeholder="Einheit"
+                  <input className={inputCls + ' !w-18'} placeholder="Einheit"
                     value={ing.unit ?? ''}
                     onChange={(e) => setIngredient(i, 'unit', e.target.value)} />
                   <input className={inputCls + ' flex-1'} placeholder="Zutat"
                     value={ing.name}
                     onChange={(e) => setIngredient(i, 'name', e.target.value)} />
-                  <button type="button" className="text-ink-400 px-1" aria-label="Zutat entfernen"
+                  <button type="button" className="text-ink-3 px-1" aria-label="Zutat entfernen"
                     onClick={() => setPreview((p) => ({ ...p, ingredients: p.ingredients.filter((_, j) => j !== i) }))}>
                     <Icon name="x" size={16} />
                   </button>
                 </div>
               ))}
               <button type="button"
-                className="inline-flex items-center gap-1.5 text-sm text-brand-700 font-semibold p-1"
+                className="inline-flex items-center gap-1.5 text-[13.5px] text-tint font-semibold p-1"
                 onClick={() => setPreview((p) => ({ ...p, ingredients: [...p.ingredients, { name: '', amount: '', unit: '', is_scalable: true }] }))}>
-                <Icon name="plus" size={15} strokeWidth={2.4} />
+                <Icon name="plus" size={14} strokeWidth={2.4} />
                 Zutat hinzufügen
               </button>
             </div>
@@ -209,21 +222,21 @@ export default function ImportPage({ onDone, onCancel }) {
             <div className="space-y-2 mt-2">
               {preview.steps.map((s, i) => (
                 <div key={i} className="flex gap-2">
-                  <span className="shrink-0 grid place-content-center w-7 h-7 mt-1 rounded-lg bg-brand-700 text-paper text-xs font-bold">
+                  <span className="shrink-0 grid place-content-center w-[26px] h-[26px] mt-1.5 rounded-full bg-fill text-[13px] font-bold text-ink-2">
                     {i + 1}
                   </span>
                   <textarea className={inputCls + ' flex-1'} rows={2} value={s}
                     onChange={(e) => setPreview((p) => ({ ...p, steps: p.steps.map((x, j) => (j === i ? e.target.value : x)) }))} />
-                  <button type="button" className="text-ink-400 px-1" aria-label="Schritt entfernen"
+                  <button type="button" className="text-ink-3 px-1" aria-label="Schritt entfernen"
                     onClick={() => setPreview((p) => ({ ...p, steps: p.steps.filter((_, j) => j !== i) }))}>
                     <Icon name="x" size={16} />
                   </button>
                 </div>
               ))}
               <button type="button"
-                className="inline-flex items-center gap-1.5 text-sm text-brand-700 font-semibold p-1"
+                className="inline-flex items-center gap-1.5 text-[13.5px] text-tint font-semibold p-1"
                 onClick={() => setPreview((p) => ({ ...p, steps: [...p.steps, ''] }))}>
-                <Icon name="plus" size={15} strokeWidth={2.4} />
+                <Icon name="plus" size={14} strokeWidth={2.4} />
                 Schritt hinzufügen
               </button>
             </div>
@@ -231,20 +244,25 @@ export default function ImportPage({ onDone, onCancel }) {
         </div>
 
         {error && (
-          <p className="text-sm text-accent-700 bg-accent-50 border border-accent-200 rounded-xl px-4 py-3 mt-4">
+          <p className="text-[13.5px] text-love rounded-[12px] px-4 py-3 mt-4" style={{ background: 'rgb(195 61 36 / 0.1)' }}>
             {error}
           </p>
         )}
 
-        <div className="fixed bottom-0 inset-x-0 bg-paper/95 backdrop-blur border-t border-ink-200 p-3"
-          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+        <div
+          className="fixed bottom-0 inset-x-0 z-10"
+          style={{
+            background: 'linear-gradient(to top, var(--color-bg) 60%, transparent)',
+            padding: '12px 16px max(28px, env(safe-area-inset-bottom))',
+          }}
+        >
           <div className="mx-auto max-w-2xl flex gap-3">
             <button onClick={() => setPreview(null)} disabled={busy}
-              className="flex-1 rounded-xl border border-ink-200 bg-card py-3 font-semibold text-ink-700 active:bg-ink-100">
+              className="flex-1 h-[50px] rounded-[14px] bg-fill text-[16px] font-semibold text-ink-2 active:opacity-80 transition">
               Zurück
             </button>
             <button onClick={handleSave} disabled={busy || !preview.title.trim()}
-              className="flex-[2] inline-flex items-center justify-center gap-2 rounded-xl bg-brand-700 py-3 font-semibold text-paper shadow-card active:bg-brand-800 disabled:opacity-50">
+              className="flex-[2] h-[50px] rounded-[14px] bg-tint text-white text-[16px] font-semibold flex items-center justify-center gap-2 active:bg-tint-dark transition disabled:opacity-45">
               <Icon name="check" size={17} strokeWidth={2.4} />
               {busy ? 'Speichern …' : 'Rezept speichern'}
             </button>
@@ -256,28 +274,25 @@ export default function ImportPage({ onDone, onCancel }) {
 
   // ---------- Schritt 1: Quelle ----------
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 animate-rise">
-      <div className="flex items-center gap-3 mb-1">
-        <span className="grid place-content-center w-10 h-10 rounded-2xl bg-brand-100 text-brand-700">
-          <Icon name="sparkles" size={20} strokeWidth={1.9} />
-        </span>
-        <h2 className="font-display text-2xl font-semibold text-ink-900">Rezept importieren</h2>
-      </div>
-      <p className="text-sm text-ink-500 mb-6">
+    <div className="mx-auto max-w-2xl px-4 pt-5 animate-rise pb-16">
+      {Header}
+      <p className="text-[14.5px] text-ink-3 mb-6">
         Füge einen Link ein – YouTube-Video, Short oder Kochseite. Die KI extrahiert Zutaten und Schritte automatisch.
       </p>
       <form onSubmit={handleExtract} className="space-y-4">
         <div className="relative">
-          <Icon name="link" size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none">
+            <Icon name="link" size={16} strokeWidth={2} />
+          </span>
           <input
             type="url"
             placeholder="https://…"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="w-full rounded-2xl border border-ink-200 bg-card pl-11 pr-4 py-3.5 text-base outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100 placeholder:text-ink-400"
+            className="w-full rounded-[14px] bg-card shadow-card pl-11 pr-4 py-3.5 text-[16px] outline-none border border-transparent transition focus:border-tint focus:ring-4 focus:ring-tint-soft placeholder:text-ink-3"
           />
         </div>
-        <button type="button" className="text-sm text-ink-500 underline underline-offset-2"
+        <button type="button" className="text-[13.5px] text-ink-3 underline underline-offset-2"
           onClick={() => setShowManual(!showManual)}>
           {showManual ? 'Text-Eingabe ausblenden' : 'Oder Rezepttext manuell einfügen'}
         </button>
@@ -287,27 +302,24 @@ export default function ImportPage({ onDone, onCancel }) {
             placeholder="Rezepttext hier einfügen (Zutaten + Zubereitung) …"
             value={manualText}
             onChange={(e) => setManualText(e.target.value)}
-            className="w-full rounded-2xl border border-ink-200 bg-card px-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100 placeholder:text-ink-400"
+            className="w-full rounded-[14px] bg-card shadow-card px-4 py-3 text-[15px] outline-none border border-transparent transition focus:border-tint focus:ring-4 focus:ring-tint-soft placeholder:text-ink-3"
           />
         )}
         {error && (
-          <p className="text-sm text-accent-700 bg-accent-50 border border-accent-200 rounded-xl px-4 py-3">
+          <p className="text-[13.5px] text-love rounded-[12px] px-4 py-3" style={{ background: 'rgb(195 61 36 / 0.1)' }}>
             {error}
           </p>
         )}
-        <div className="flex gap-3">
-          <button type="button" onClick={onCancel}
-            className="flex-1 rounded-xl border border-ink-200 bg-card py-3 font-semibold text-ink-700 active:bg-ink-100">
-            Abbrechen
-          </button>
-          <button type="submit" disabled={busy || (!url.trim() && !(showManual && manualText.trim()))}
-            className="flex-[2] inline-flex items-center justify-center gap-2 rounded-xl bg-brand-700 py-3 font-semibold text-paper shadow-card active:bg-brand-800 disabled:opacity-50">
-            <Icon name="sparkles" size={17} strokeWidth={2} />
-            {busy ? 'Extrahiere Rezept …' : 'Rezept extrahieren'}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={busy || (!url.trim() && !(showManual && manualText.trim()))}
+          className="w-full h-[50px] rounded-[14px] bg-tint text-white text-[16.5px] font-semibold flex items-center justify-center gap-2 active:bg-tint-dark transition disabled:opacity-45"
+        >
+          <Icon name="sparkles" size={17} strokeWidth={2} />
+          {busy ? 'Extrahiere Rezept …' : 'Rezept extrahieren'}
+        </button>
         {busy && (
-          <p className="text-xs text-ink-400 text-center animate-pulse">
+          <p className="text-[13px] text-ink-3 text-center animate-pulse">
             Quelle wird gelesen und von der KI strukturiert – das dauert 10–30 Sekunden …
           </p>
         )}

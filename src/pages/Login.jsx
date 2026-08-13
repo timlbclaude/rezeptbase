@@ -18,22 +18,21 @@ export default function Login() {
   }
 
   const inputCls =
-    'w-full rounded-xl border border-ink-200 bg-card px-4 py-3 text-base outline-none transition ' +
-    'focus:border-brand-500 focus:ring-4 focus:ring-brand-100 placeholder:text-ink-400'
+    'w-full rounded-[12px] bg-card px-[15px] py-[14px] text-[16px] outline-none transition ' +
+    'shadow-card border border-transparent focus:border-tint focus:ring-4 focus:ring-tint-soft placeholder:text-ink-3'
+  const labelCls = 'text-[12px] font-semibold uppercase tracking-[0.03em] text-ink-3'
 
   return (
     <div className="min-h-svh flex items-center justify-center p-6 animate-rise">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
-          <div className="flex justify-center mb-5"><Logo size={64} /></div>
-          <h1 className="font-display text-4xl font-semibold text-ink-900 tracking-tight">Rezeptbase</h1>
-          <p className="text-ink-500 mt-2">Deine persönliche Rezeptsammlung</p>
+          <div className="flex justify-center mb-5"><Logo size={74} /></div>
+          <h1 className="text-[28px] font-bold text-ink">Rezeptbase</h1>
+          <p className="text-[14.5px] text-ink-3 mt-1.5">Deine persönliche Rezeptsammlung</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-ink-500">
-              E-Mail
-            </label>
+            <label htmlFor="email" className={labelCls}>E-Mail</label>
             <input
               id="email"
               type="email"
@@ -46,9 +45,7 @@ export default function Login() {
             />
           </div>
           <div className="space-y-1.5">
-            <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-ink-500">
-              Passwort
-            </label>
+            <label htmlFor="password" className={labelCls}>Passwort</label>
             <input
               id="password"
               type="password"
@@ -61,14 +58,14 @@ export default function Login() {
             />
           </div>
           {error && (
-            <p className="text-sm text-accent-700 bg-accent-50 border border-accent-200 rounded-xl px-4 py-3">
+            <p className="text-[13.5px] text-love rounded-[12px] px-4 py-3" style={{ background: 'rgb(195 61 36 / 0.1)' }}>
               {error}
             </p>
           )}
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-xl bg-brand-700 py-3.5 font-semibold text-paper shadow-card transition active:scale-[0.99] active:bg-brand-800 disabled:opacity-50"
+            className="w-full h-[50px] rounded-[14px] bg-tint text-[16.5px] font-semibold text-white transition active:bg-tint-dark active:scale-[0.98] disabled:opacity-45"
           >
             {busy ? 'Anmelden …' : 'Anmelden'}
           </button>

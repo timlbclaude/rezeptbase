@@ -4,49 +4,143 @@ import ImportPage from './ImportPage.jsx'
 import RecipeDetail from './RecipeDetail.jsx'
 import ShoppingList from './ShoppingList.jsx'
 import Icon from '../components/Icon.jsx'
-import { Logo } from '../App.jsx'
 
-const TABS = [
-  { key: 'alle', label: 'Alle', icon: null },
-  { key: 'zum_ausprobieren', label: 'Zum Ausprobieren', icon: 'sprout' },
-  { key: 'gekocht', label: 'Gekocht', icon: 'checkCircle' },
+const CHIPS = [
+  { key: 'alle', label: 'Alle' },
+  { key: 'zum_ausprobieren', label: 'Ausprobieren' },
+  { key: 'gekocht', label: 'Gekocht' },
 ]
 
-function StatusChip({ status }) {
-  const cooked = status === 'gekocht'
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold backdrop-blur-sm ${
-        cooked ? 'bg-brand-700/90 text-paper' : 'bg-card/90 text-try-700'
-      }`}
-    >
-      <Icon name={cooked ? 'checkCircle' : 'sprout'} size={12} strokeWidth={2.4} />
-      {cooked ? 'Gekocht' : 'Ausprobieren'}
+function metaLine(r) {
+  const time = (r.prep_time_min ?? 0) + (r.cook_time_min ?? 0)
+  const cooked = (r.status ?? 'zum_ausprobieren') === 'gekocht'
+  return [
+    time > 0 ? `${time} Min` : null,
+    r.rating ? `★ ${r.rating},0` : null,
+    cooked ? 'Gekocht' : r.category,
+  ].filter(Boolean).join(' · ')
+}
+
+function Thumb({ src, size = 52, radius = 10 }) {
+  return src ? (
+    <img src={src} alt="" loading="lazy" className="object-cover shrink-0" style={{ width: size, height: size, borderRadius: radius }} />
+  ) : (
+    <span className="grid place-content-center bg-fill text-ink-3 shrink-0" style={{ width: size, height: size, borderRadius: radius }}>
+      <Icon name="utensils" size={size * 0.42} strokeWidth={1.8} />
     </span>
   )
 }
 
-function CardSkeleton() {
+function RecipeRow({ r, onOpen, last }) {
   return (
-    <div className="rounded-3xl bg-card border border-ink-100 overflow-hidden shadow-card">
-      <div className="h-32 skeleton" />
-      <div className="p-3.5 space-y-2">
-        <div className="h-4 w-4/5 rounded skeleton" />
-        <div className="h-3 w-3/5 rounded skeleton" />
+    <button
+      onClick={onOpen}
+      className="relative w-full flex items-center gap-3 px-3 py-2.5 text-left active:bg-black/[0.03] transition"
+    >
+      <Thumb src={r.image_url} />
+      <span className="flex-1 min-w-0">
+        <span className="block text-[15.5px] font-semibold text-ink truncate">{r.title}</span>
+        <span className="block text-[12.5px] text-ink-3 mt-0.5 truncate">{metaLine(r)}</span>
+      </span>
+      <span className="shrink-0" style={{ color: 'rgb(60 60 67 / 0.3)' }}>
+        <Icon name="chevronRight" size={17} strokeWidth={2.2} />
+      </span>
+      {!last && (
+        <span
+          className="absolute bottom-0 right-0 pointer-events-none"
+          style={{ left: 73, height: 0.5, background: 'var(--color-separator)' }}
+        />
+      )}
+    </button>
+  )
+}
+
+function GridCard({ r, onOpen }) {
+  return (
+    <button onClick={onOpen} className="text-left bg-card rounded-[18px] shadow-card p-1.5 pb-3 active:scale-[0.98] transition">
+      <div className="relative">
+        {r.image_url ? (
+          <img src={r.image_url} alt="" loading="lazy" className="w-full object-cover rounded-[13px]" style={{ height: 106 }} />
+        ) : (
+          <div className="w-full grid place-content-center bg-fill text-ink-3 rounded-[13px]" style={{ height: 106 }}>
+            <Icon name="utensils" size={26} strokeWidth={1.6} />
+          </div>
+        )}
+        {r.is_favorite && (
+          <span className="absolute top-1.5 right-1.5 grid place-content-center w-6 h-6 rounded-full text-love" style={{ background: 'rgb(255 255 255 / 0.92)' }}>
+            <Icon name="heart" size={13} filled />
+          </span>
+        )}
+      </div>
+      <p className="text-[15px] font-semibold text-ink leading-snug line-clamp-2 px-2 pt-2">{r.title}</p>
+      <p className="text-[12.5px] text-ink-3 px-2 pt-0.5">
+        {[(r.prep_time_min ?? 0) + (r.cook_time_min ?? 0) > 0 ? `${(r.prep_time_min ?? 0) + (r.cook_time_min ?? 0)} Min` : null, r.category].filter(Boolean).join(' · ')}
+      </p>
+    </button>
+  )
+}
+
+function SectionLabel({ children }) {
+  return (
+    <p className="text-[13px] font-semibold uppercase text-ink-3 mb-2 mt-6 first:mt-0" style={{ letterSpacing: '0.03em' }}>
+      {children}
+    </p>
+  )
+}
+
+function TabBar({ tab, onTab }) {
+  const items = [
+    { key: 'rezepte', label: 'Rezepte', icon: 'book' },
+    { key: 'import', label: 'Import', icon: 'plusCircle' },
+    { key: 'einkauf', label: 'Einkauf', icon: 'bag' },
+  ]
+  return (
+    <nav
+      className="fixed bottom-0 inset-x-0 z-20 flex justify-center gap-10"
+      style={{
+        background: 'rgb(249 249 251 / 0.92)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: 'inset 0 0.5px 0 var(--color-separator)',
+        padding: '9px 40px max(24px, env(safe-area-inset-bottom))',
+      }}
+    >
+      {items.map((it) => (
+        <button
+          key={it.key}
+          onClick={() => onTab(it.key)}
+          className="flex flex-col items-center gap-0.5 min-w-16"
+          style={{ color: tab === it.key ? 'var(--color-tint)' : '#8E8E93' }}
+        >
+          <Icon name={it.icon} size={24} strokeWidth={tab === it.key ? 2 : 1.8} />
+          <span className="text-[10px] font-semibold">{it.label}</span>
+        </button>
+      ))}
+    </nav>
+  )
+}
+
+function RowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 px-3 py-2.5">
+      <div className="skeleton rounded-[10px]" style={{ width: 52, height: 52 }} />
+      <div className="flex-1 space-y-2">
+        <div className="skeleton h-3.5 w-3/4 rounded" />
+        <div className="skeleton h-3 w-1/2 rounded" />
       </div>
     </div>
   )
 }
 
 export default function Recipes({ session }) {
-  const [view, setView] = useState({ name: 'list' })
+  const [tab, setTab] = useState('rezepte')
+  const [screen, setScreen] = useState(null) // null | {name:'detail',id} | {name:'import'}
+  const [profileOpen, setProfileOpen] = useState(false)
   const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
-  const [tab, setTab] = useState('alle')
-  const [category, setCategory] = useState('')
+  const [filter, setFilter] = useState('alle')
   const [onlyFavs, setOnlyFavs] = useState(false)
-  const [sort, setSort] = useState('neu')
 
   const loadRecipes = useCallback(() => {
     supabase
@@ -63,15 +157,9 @@ export default function Recipes({ session }) {
     loadRecipes()
   }, [loadRecipes])
 
-  const categories = useMemo(
-    () => [...new Set(recipes.map((r) => r.category).filter(Boolean))].sort(),
-    [recipes],
-  )
-
   const filtered = useMemo(() => {
     let list = recipes
-    if (tab !== 'alle') list = list.filter((r) => (r.status ?? 'zum_ausprobieren') === tab)
-    if (category) list = list.filter((r) => r.category === category)
+    if (filter !== 'alle') list = list.filter((r) => (r.status ?? 'zum_ausprobieren') === filter)
     if (onlyFavs) list = list.filter((r) => r.is_favorite)
     const query = q.trim().toLowerCase()
     if (query) {
@@ -82,232 +170,182 @@ export default function Recipes({ session }) {
           (r.ingredients ?? []).some((i) => i.name.toLowerCase().includes(query)),
       )
     }
-    list = [...list]
-    if (sort === 'az') list.sort((a, b) => a.title.localeCompare(b.title, 'de'))
-    else if (sort === 'bewertung') list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
     return list
-  }, [recipes, tab, category, onlyFavs, q, sort])
+  }, [recipes, filter, onlyFavs, q])
+
+  const tryList = useMemo(
+    () => recipes.filter((r) => (r.status ?? 'zum_ausprobieren') === 'zum_ausprobieren'),
+    [recipes],
+  )
 
   const backToList = () => {
     loadRecipes()
-    setView({ name: 'list' })
+    setScreen(null)
   }
 
-  const tryCount = recipes.filter((r) => (r.status ?? 'zum_ausprobieren') === 'zum_ausprobieren').length
+  const isDefaultView = filter === 'alle' && !q.trim() && !onlyFavs
+
+  // ---- Push-Screens (ohne Tab-Bar) ----
+  if (screen?.name === 'import') {
+    return (
+      <ImportPage
+        onCancel={backToList}
+        onDone={(id) => {
+          loadRecipes()
+          setScreen({ name: 'detail', id })
+        }}
+      />
+    )
+  }
+  if (screen?.name === 'detail') {
+    return <RecipeDetail recipeId={screen.id} onBack={backToList} onDeleted={backToList} />
+  }
 
   return (
-    <div className="min-h-svh pb-28">
-      <header className="sticky top-0 z-10 bg-paper/85 backdrop-blur-md border-b border-ink-100">
-        <div className="mx-auto max-w-2xl flex items-center justify-between px-4 py-3">
-          <button onClick={backToList} className="flex items-center gap-2.5">
-            <Logo size={34} />
-            <span className="font-display text-xl font-semibold text-ink-900 tracking-tight">Rezeptbase</span>
-          </button>
-          <div className="flex items-center gap-1">
+    <div className="min-h-svh pb-32">
+      {tab === 'einkauf' ? (
+        <ShoppingList />
+      ) : (
+        <main className="mx-auto max-w-2xl px-4 pt-5 animate-rise">
+          {/* Kopf */}
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-[34px] font-bold text-ink" style={{ letterSpacing: '0.3px' }}>Rezepte</h1>
             <button
-              onClick={() => setView({ name: 'shopping' })}
-              className="p-2.5 rounded-full text-ink-700 active:bg-ink-100 transition"
-              aria-label="Einkaufsliste"
+              onClick={() => setProfileOpen(true)}
+              className="grid place-content-center w-[34px] h-[34px] rounded-full bg-fill text-tint active:scale-95 transition"
+              aria-label="Profil"
             >
-              <Icon name="cart" size={21} />
-            </button>
-            <button
-              onClick={() => supabase.auth.signOut()}
-              className="p-2.5 rounded-full text-ink-400 active:bg-ink-100 transition"
-              aria-label="Abmelden"
-            >
-              <Icon name="logOut" size={20} />
+              <Icon name="user" size={17} strokeWidth={2} />
             </button>
           </div>
-        </div>
-      </header>
 
-      {view.name === 'import' && (
-        <ImportPage
-          onCancel={backToList}
-          onDone={(id) => {
-            loadRecipes()
-            setView({ name: 'detail', id })
-          }}
-        />
-      )}
-
-      {view.name === 'detail' && (
-        <RecipeDetail recipeId={view.id} onBack={backToList} onDeleted={backToList} />
-      )}
-
-      {view.name === 'shopping' && <ShoppingList onBack={backToList} />}
-
-      {view.name === 'list' && (
-        <main className="mx-auto max-w-2xl px-4 py-5 animate-rise">
-          <div className="mb-5">
-            <h1 className="font-display text-3xl font-semibold text-ink-900 tracking-tight">
-              Deine Rezepte
-            </h1>
-            <p className="text-sm text-ink-500 mt-1">
-              {recipes.length} {recipes.length === 1 ? 'Rezept' : 'Rezepte'}
-              {tryCount > 0 && ` · ${tryCount} zum Ausprobieren`}
-            </p>
-          </div>
-
-          {/* Status-Tabs */}
-          <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar -mx-4 px-4">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold border transition ${
-                  tab === t.key
-                    ? 'bg-brand-700 text-paper border-brand-700 shadow-card'
-                    : 'bg-card text-ink-700 border-ink-200'
-                }`}
-              >
-                {t.icon && <Icon name={t.icon} size={15} strokeWidth={2.2} />}
-                {t.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Suche */}
+          {/* Suchfeld */}
           <div className="relative mb-3">
-            <Icon
-              name="search"
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none"
-            />
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 pointer-events-none">
+              <Icon name="search" size={16} strokeWidth={2} />
+            </span>
             <input
               type="search"
-              placeholder="Suche nach Titel oder Zutat …"
+              placeholder="Titel oder Zutat suchen"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="w-full rounded-2xl border border-ink-200 bg-card pl-11 pr-4 py-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100 placeholder:text-ink-400"
+              className="w-full rounded-[12px] bg-fill pl-9 pr-3 text-[16px] text-ink-2 outline-none placeholder:text-ink-3"
+              style={{ padding: '9px 12px 9px 36px' }}
             />
           </div>
 
-          {/* Filter */}
-          <div className="flex gap-2 mb-5 flex-wrap items-center">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="rounded-xl border border-ink-200 bg-card px-3 py-2 text-sm outline-none text-ink-700"
-            >
-              <option value="">Alle Kategorien</option>
-              {categories.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="rounded-xl border border-ink-200 bg-card px-3 py-2 text-sm outline-none text-ink-700"
-            >
-              <option value="neu">Neueste zuerst</option>
-              <option value="az">A–Z</option>
-              <option value="bewertung">Beste Bewertung</option>
-            </select>
+          {/* Filter-Chips */}
+          <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar -mx-4 px-4">
+            {CHIPS.map((c) => (
+              <button
+                key={c.key}
+                onClick={() => setFilter(c.key)}
+                className={`shrink-0 rounded-full text-[14px] transition ${
+                  filter === c.key ? 'bg-tint text-white font-semibold' : 'bg-card text-ink-2 font-medium shadow-card'
+                }`}
+                style={{ padding: '7px 15px' }}
+              >
+                {c.label}
+              </button>
+            ))}
             <button
               onClick={() => setOnlyFavs(!onlyFavs)}
-              className={`inline-flex items-center justify-center rounded-xl border p-2 transition ${
-                onlyFavs
-                  ? 'border-accent-300 bg-accent-50 text-accent-500'
-                  : 'border-ink-200 bg-card text-ink-400'
+              className={`shrink-0 rounded-full transition grid place-content-center ${
+                onlyFavs ? 'bg-tint text-white' : 'bg-card text-love shadow-card'
               }`}
+              style={{ padding: '7px 13px' }}
               aria-label="Nur Favoriten"
             >
-              <Icon name="heart" size={18} filled={onlyFavs} />
+              <Icon name="heart" size={15} filled={onlyFavs} strokeWidth={2} />
             </button>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 gap-4">
-              <CardSkeleton /><CardSkeleton /><CardSkeleton /><CardSkeleton />
+            <div className="bg-card rounded-[16px] shadow-card overflow-hidden">
+              <RowSkeleton /><RowSkeleton /><RowSkeleton /><RowSkeleton />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="inline-grid place-content-center w-16 h-16 rounded-3xl bg-ink-100 text-ink-400 mb-4">
-                <Icon name={recipes.length === 0 ? 'chefHat' : 'search'} size={28} strokeWidth={1.5} />
+            <div className="text-center py-14">
+              <div className="inline-grid place-content-center w-14 h-14 rounded-[18px] bg-fill text-ink-3 mb-4">
+                <Icon name={recipes.length === 0 ? 'chefHat' : 'search'} size={26} strokeWidth={1.6} />
               </div>
-              <h2 className="font-display text-lg font-semibold text-ink-900 mb-1">
+              <h2 className="text-[16px] font-semibold text-ink mb-1">
                 {recipes.length === 0 ? 'Noch keine Rezepte' : 'Nichts gefunden'}
               </h2>
-              <p className="text-ink-500 text-sm max-w-xs mx-auto">
+              <p className="text-[13.5px] text-ink-3 max-w-xs mx-auto">
                 {recipes.length === 0
-                  ? 'Importiere dein erstes Rezept – einfach einen YouTube-Link oder eine Kochseite einfügen.'
-                  : 'Kein Rezept passt zu Suche oder Filter. Setze die Filter zurück oder importiere etwas Neues.'}
+                  ? 'Importiere dein erstes Rezept über den Import-Tab – einfach einen Link einfügen.'
+                  : 'Kein Rezept passt zu Suche oder Filter.'}
               </p>
             </div>
+          ) : isDefaultView ? (
+            <>
+              {tryList.length > 0 && (
+                <>
+                  <SectionLabel>Zum Ausprobieren · {tryList.length}</SectionLabel>
+                  <div className="grid grid-cols-2 gap-3">
+                    {tryList.map((r) => (
+                      <GridCard key={r.id} r={r} onOpen={() => setScreen({ name: 'detail', id: r.id })} />
+                    ))}
+                  </div>
+                </>
+              )}
+              <SectionLabel>Alle Rezepte</SectionLabel>
+              <div className="bg-card rounded-[16px] shadow-card overflow-hidden text-ink-4">
+                {recipes.map((r, i) => (
+                  <RecipeRow key={r.id} r={r} last={i === recipes.length - 1} onOpen={() => setScreen({ name: 'detail', id: r.id })} />
+                ))}
+              </div>
+            </>
           ) : (
-            <ul className="grid grid-cols-2 gap-4">
-              {filtered.map((r) => {
-                const time = (r.prep_time_min ?? 0) + (r.cook_time_min ?? 0)
-                return (
-                  <li key={r.id}>
-                    <button
-                      onClick={() => setView({ name: 'detail', id: r.id })}
-                      className="group w-full text-left rounded-3xl bg-card border border-ink-100 overflow-hidden shadow-card transition active:scale-[0.98]"
-                    >
-                      <div className="relative">
-                        {r.image_url ? (
-                          <img
-                            src={r.image_url}
-                            alt=""
-                            loading="lazy"
-                            className="h-32 w-full object-cover transition duration-500 group-active:scale-105"
-                          />
-                        ) : (
-                          <div className="h-32 w-full bg-gradient-to-br from-ink-100 to-ink-200 grid place-content-center text-ink-400">
-                            <Icon name="utensils" size={28} strokeWidth={1.5} />
-                          </div>
-                        )}
-                        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-ink-900/30 to-transparent" />
-                        <span className="absolute top-2 left-2">
-                          <StatusChip status={r.status ?? 'zum_ausprobieren'} />
-                        </span>
-                        {r.is_favorite && (
-                          <span className="absolute top-2 right-2 grid place-content-center w-7 h-7 rounded-full bg-card/90 text-accent-500 backdrop-blur-sm">
-                            <Icon name="heart" size={14} filled />
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-3.5">
-                        <p className="font-semibold text-[15px] leading-snug text-ink-900 line-clamp-2">
-                          {r.title}
-                        </p>
-                        <div className="flex items-center gap-2.5 text-xs text-ink-500 mt-1.5">
-                          {r.category && <span>{r.category}</span>}
-                          {time > 0 && (
-                            <span className="inline-flex items-center gap-1">
-                              <Icon name="clock" size={12} strokeWidth={2.2} />
-                              {time} Min
-                            </span>
-                          )}
-                          {r.rating && (
-                            <span className="inline-flex items-center gap-0.5 text-amber-500 font-semibold">
-                              <Icon name="star" size={12} filled />
-                              {r.rating}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+            <>
+              <SectionLabel>Ergebnisse · {filtered.length}</SectionLabel>
+              <div className="bg-card rounded-[16px] shadow-card overflow-hidden text-ink-4">
+                {filtered.map((r, i) => (
+                  <RecipeRow key={r.id} r={r} last={i === filtered.length - 1} onOpen={() => setScreen({ name: 'detail', id: r.id })} />
+                ))}
+              </div>
+            </>
           )}
 
-          <p className="text-center text-xs text-ink-400 mt-12">Angemeldet als {session.user.email}</p>
+          <p className="text-center text-[12px] text-ink-4 mt-10">Angemeldet als {session.user.email}</p>
         </main>
       )}
 
-      {view.name === 'list' && (
-        <button
-          onClick={() => setView({ name: 'import' })}
-          className="fixed bottom-6 right-1/2 translate-x-1/2 sm:right-8 sm:translate-x-0 inline-flex items-center gap-2 rounded-full bg-brand-700 text-paper font-semibold pl-5 pr-6 py-3.5 shadow-float transition active:scale-[0.97] active:bg-brand-800"
-        >
-          <Icon name="plus" size={20} strokeWidth={2.4} />
-          Rezept importieren
-        </button>
+      <TabBar
+        tab={tab}
+        onTab={(t) => {
+          if (t === 'import') setScreen({ name: 'import' })
+          else setTab(t)
+        }}
+      />
+
+      {/* Profil-Sheet */}
+      {profileOpen && (
+        <div className="fixed inset-0 z-30" onClick={() => setProfileOpen(false)} style={{ background: 'rgb(0 0 0 / 0.25)' }}>
+          <div
+            className="absolute bottom-0 inset-x-0 bg-card rounded-t-[22px] animate-sheet px-5 pt-3"
+            style={{ boxShadow: 'var(--shadow-sheet)', paddingBottom: 'max(28px, env(safe-area-inset-bottom))' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto rounded-full" style={{ width: 38, height: 4, background: '#D9D9DE' }} />
+            <div className="flex items-center gap-3 mt-5 mb-6">
+              <span className="grid place-content-center w-11 h-11 rounded-full bg-tint-soft text-tint">
+                <Icon name="user" size={20} strokeWidth={2} />
+              </span>
+              <div>
+                <p className="text-[15.5px] font-semibold text-ink">Angemeldet</p>
+                <p className="text-[13.5px] text-ink-3">{session.user.email}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="w-full h-[50px] rounded-[14px] bg-fill text-[16px] font-semibold text-love active:opacity-80 transition"
+            >
+              Abmelden
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
