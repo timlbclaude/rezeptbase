@@ -55,6 +55,7 @@ export default function ImportPage({ onDone, onCancel, editRecipe }) {
       prep_time_min: r.prep_time_min ?? '',
       cook_time_min: r.cook_time_min ?? '',
       image_url: r.image_url,
+      keywords: r.keywords ?? [],
       steps: normalizeSteps(r.steps),
       ingredients: (editRecipe.ingredients ?? []).map((i) => ({
         name: i.name,
@@ -83,6 +84,7 @@ export default function ImportPage({ onDone, onCancel, editRecipe }) {
         cook_time_min: data.recipe.cook_time_min ?? '',
         cuisine: data.recipe.cuisine ?? '',
         description: data.recipe.description ?? '',
+        keywords: data.recipe.keywords ?? [],
         steps: normalizeSteps(data.recipe.steps),
       })
     }
@@ -150,6 +152,7 @@ export default function ImportPage({ onDone, onCancel, editRecipe }) {
       cook_time_min: p.cook_time_min === '' ? null : Number(p.cook_time_min),
       category: p.category,
       cuisine: p.cuisine || null,
+      keywords: (p.keywords ?? []).map((k) => String(k).trim()).filter(Boolean),
       steps: stepsJson,
     }
 
@@ -293,6 +296,19 @@ export default function ImportPage({ onDone, onCancel, editRecipe }) {
               <input type="number" min="0" className={inputCls} value={preview.cook_time_min}
                 onChange={(e) => setPreview({ ...preview, cook_time_min: e.target.value })} />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className={labelCls}>Suchbegriffe (für die Suche, mit Komma getrennt)</label>
+            <textarea
+              className={inputCls}
+              rows={2}
+              placeholder="z.B. teigwaren, pasta, nudeln, vegetarisch …"
+              value={(preview.keywords ?? []).join(', ')}
+              onChange={(e) =>
+                setPreview({ ...preview, keywords: e.target.value.split(',').map((k) => k.trim()) })
+              }
+            />
           </div>
 
           <div>

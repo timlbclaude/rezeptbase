@@ -228,7 +228,8 @@ async function fetchTikTok(rawUrl: string) {
 // ---------- Instagram ----------
 
 function isInstagram(url: string): boolean {
-  return /instagram\.com\/(reel|reels|p|tv)\//.test(url);
+  // auch Formen wie instagram.com/<nutzer>/reel/<code>/ erkennen
+  return /instagram\.com\/(?:[^/]+\/)?(reel|reels|p|tv)\//.test(url);
 }
 
 function decodeEntities(s: string): string {
@@ -368,6 +369,14 @@ const RECIPE_TOOL = {
           required: ["name", "amount", "unit", "is_scalable"],
         },
       },
+      keywords: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "8-15 deutsche Suchbegriffe für dieses Rezept: Oberbegriffe (z.B. Teigwaren, Geflügel, Süßes), " +
+          "Synonyme (Pasta/Nudeln, Hähnchen/Poulet), Hauptzutaten-Kategorien, Zubereitungsart (Ofen, Grill, One-Pot), " +
+          "Besonderheiten (vegetarisch, scharf, schnell). Kleingeschrieben, einzelne Wörter oder kurze Begriffe.",
+      },
       steps: {
         type: "array",
         description: "Kochschritte in Reihenfolge",
@@ -388,7 +397,7 @@ const RECIPE_TOOL = {
         },
       },
     },
-    required: ["erkannt", "title", "base_servings", "category", "ingredients", "steps"],
+    required: ["erkannt", "title", "base_servings", "category", "ingredients", "steps", "keywords"],
   },
 };
 
@@ -401,6 +410,7 @@ async function extractWithClaude(content: string, image?: { data: string; media_
     "Extrahiere aus der folgenden Quelle ein Kochrezept. Übersetze alles ins Deutsche. " +
     "Mengen als Zahlen (Brüche wie '1/2' als 0.5). " +
     "Gib bei Schritten mit konkreter Wartezeit timer_min an und liste je Schritt die verwendeten Zutaten (zutaten). " +
+    "Vergib 8-15 deutsche Suchbegriffe (keywords) inkl. Oberbegriffen und Synonymen (z.B. Teigwaren UND Pasta UND Nudeln). " +
     "Wenn die Quelle kein Rezept enthält, setze erkannt=false.\n\n---\n\n" +
     content.slice(0, 150000);
 
@@ -477,6 +487,49 @@ async function extractViaWebSearch(content: string): Promise<any | null> {
   return toolUse ? toolUse.input : null;
 }
 
+// Nur Schlagworte für ein BESTEHENDES Rezept erzeugen (Backfill / Nachpflege)
+async function generateKeywords(info: any): Promise<string[]> {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY fehlt (Supabase Secret)");
+  const model = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-5";
+
+  const KEYWORDS_TOOL = {
+    name: "schlagworte_speichern",
+    description: "Speichert die Suchbegriffe.",
+    input_schema: {
+      type: "object",
+      properties: { keywords: (RECIPE_TOOL.input_schema.properties as any).keywords },
+      required: ["keywords"],
+    },
+  };
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 800,
+      tools: [KEYWORDS_TOOL],
+      tool_choice: { type: "tool", name: "schlagworte_speichern" },
+      messages: [{
+        role: "user",
+        content:
+          "Erzeuge 8-15 deutsche Suchbegriffe für dieses Rezept (Oberbegriffe wie Teigwaren/Geflügel, " +
+          "Synonyme wie Pasta/Nudeln oder Hähnchen/Poulet, Hauptzutaten-Kategorien, Zubereitungsart, Besonderheiten):\n\n" +
+          JSON.stringify(info).slice(0, 8000),
+      }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Claude API Fehler (HTTP ${res.status})`);
+  const data = await res.json();
+  const toolUse = (data.content ?? []).find((b: any) => b.type === "tool_use");
+  return toolUse?.input?.keywords ?? [];
+}
+
 // ---------- Handler ----------
 
 Deno.serve(async (req) => {
@@ -484,7 +537,14 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Nur POST erlaubt" }, 405);
 
   try {
-    const { url, text, image_base64, image_type } = await req.json();
+    const { url, text, image_base64, image_type, keywords_for } = await req.json();
+
+    // Backfill-Modus: nur Schlagworte für ein bestehendes Rezept
+    if (keywords_for) {
+      const keywords = await generateKeywords(keywords_for);
+      return json({ keywords });
+    }
+
     let source;
 
     if (image_base64 && typeof image_base64 === "string" && image_base64.length > 100) {

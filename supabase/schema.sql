@@ -15,6 +15,7 @@ create table public.recipes (
   cook_time_min int,
   category text,
   cuisine text,
+  keywords text[] not null default '{}',
   steps jsonb not null default '[]'::jsonb,
   is_favorite boolean not null default false,
   rating int check (rating between 1 and 5),

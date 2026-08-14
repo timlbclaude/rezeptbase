@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { applyTheme, getTheme } from '../lib/theme.js'
+import { buildHaystack, matchesQuery } from '../lib/search.js'
 import ImportPage from './ImportPage.jsx'
 import RecipeDetail from './RecipeDetail.jsx'
 import ShoppingList from './ShoppingList.jsx'
@@ -157,7 +158,7 @@ export default function Recipes({ session }) {
   const loadRecipes = useCallback(() => {
     supabase
       .from('recipes')
-      .select('id, title, category, cuisine, image_url, prep_time_min, cook_time_min, is_favorite, rating, status, created_at, last_cooked_at, ingredients(name)')
+      .select('id, title, category, cuisine, description, keywords, image_url, prep_time_min, cook_time_min, is_favorite, rating, status, created_at, last_cooked_at, ingredients(name)')
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         setRecipes(data ?? [])
@@ -174,14 +175,9 @@ export default function Recipes({ session }) {
     if (filter !== 'alle') list = list.filter((r) => (r.status ?? 'zum_ausprobieren') === filter)
     if (onlyFavs) list = list.filter((r) => r.is_favorite)
     if (catFilter) list = list.filter((r) => r.category === catFilter)
-    const query = q.trim().toLowerCase()
+    const query = q.trim()
     if (query) {
-      list = list.filter(
-        (r) =>
-          r.title.toLowerCase().includes(query) ||
-          (r.cuisine ?? '').toLowerCase().includes(query) ||
-          (r.ingredients ?? []).some((i) => i.name.toLowerCase().includes(query)),
-      )
+      list = list.filter((r) => matchesQuery(r.__hay ?? (r.__hay = buildHaystack(r)), query))
     }
     if (sortBy !== 'neueste') {
       list = [...list]
