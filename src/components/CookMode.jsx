@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Icon from './Icon.jsx'
 
 /* Kochmodus „2a Nativ": Vollbild weiß, Schritt für Schritt,
@@ -109,7 +110,9 @@ export default function CookMode({ recipe, ingredients, servings, formatAmount, 
     return () => { document.body.style.overflow = prev }
   }, [])
 
-  return (
+  // Als Portal direkt an <body>: so bleibt der Vollbild-Kochmodus immer am
+  // Bildschirm verankert, egal welche Animationen die Seite dahinter hat.
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-card flex flex-col animate-rise">
       {/* Kopfzeile */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
@@ -251,6 +254,7 @@ export default function CookMode({ recipe, ingredients, servings, formatAmount, 
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   )
 }
