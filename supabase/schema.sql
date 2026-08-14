@@ -7,7 +7,7 @@ create table public.recipes (
   title text not null,
   description text,
   source_url text,
-  source_type text not null default 'manual' check (source_type in ('youtube', 'short', 'tiktok', 'web', 'manual')),
+  source_type text not null default 'manual' check (source_type in ('youtube', 'short', 'tiktok', 'instagram', 'foto', 'web', 'manual')),
   video_embed_url text,
   image_url text,
   base_servings int not null default 4,

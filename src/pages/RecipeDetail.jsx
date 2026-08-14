@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import Icon from '../components/Icon.jsx'
 import CookMode from '../components/CookMode.jsx'
+import ImportPage from './ImportPage.jsx'
 
 // Einheiten, die man nicht sinnvoll in Bruchteilen abmessen kann
 const COUNTABLE_UNITS = ['stück', 'zehe', 'zehen', 'bund', 'dose', 'dosen', 'scheibe', 'scheiben', 'stängel', 'blatt', 'blätter', 'packung', 'päckchen', 'würfel']
@@ -67,9 +68,11 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
   const [cartMessage, setCartMessage] = useState(null)
   const [cooking, setCooking] = useState(false)
   const [seg, setSeg] = useState('zutaten')
+  const [editing, setEditing] = useState(false)
+  const [shareMsg, setShareMsg] = useState(null)
 
-  useEffect(() => {
-    Promise.all([
+  const loadData = useCallback(() => {
+    return Promise.all([
       supabase.from('recipes').select('*').eq('id', recipeId).single(),
       supabase.from('ingredients').select('*').eq('recipe_id', recipeId).order('sort_order'),
     ]).then(([r, i]) => {
@@ -80,6 +83,10 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
       setLoading(false)
     })
   }, [recipeId])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   async function patch(fields) {
     setRecipe((r) => ({ ...r, ...fields }))
@@ -147,6 +154,45 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
     setTimeout(() => setCartMessage(null), 3500)
   }
 
+  async function shareRecipe() {
+    const lines = [recipe.title]
+    if (recipe.description) lines.push(recipe.description)
+    lines.push('', `Zutaten (für ${servings} ${servings === 1 ? 'Portion' : 'Portionen'}):`)
+    for (const ing of ingredients) {
+      lines.push('• ' + [formatScaled(ing, servings / (recipe.base_servings || 4)), ing.unit, ing.name].filter(Boolean).join(' '))
+    }
+    const stepList = recipe.steps ?? []
+    if (stepList.length) {
+      lines.push('', 'Zubereitung:')
+      stepList.forEach((s, i) => lines.push(`${i + 1}. ${typeof s === 'string' ? s : s.text}`))
+    }
+    if (recipe.source_url) lines.push('', `Quelle: ${recipe.source_url}`)
+    const text = lines.join('\n')
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: recipe.title, text })
+      } catch { /* vom Nutzer abgebrochen */ }
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      setShareMsg('Rezept in die Zwischenablage kopiert.')
+    } catch {
+      setShareMsg('Teilen wird auf diesem Gerät nicht unterstützt.')
+    }
+    setTimeout(() => setShareMsg(null), 3500)
+  }
+
+  if (editing && recipe) {
+    return (
+      <ImportPage
+        editRecipe={{ recipe, ingredients }}
+        onCancel={() => setEditing(false)}
+        onDone={() => { setEditing(false); setLoading(true); loadData() }}
+      />
+    )
+  }
+
   if (loading) {
     return (
       <div className="mx-auto max-w-2xl px-4 pt-4">
@@ -209,7 +255,7 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
         <button
           onClick={onBack}
           className="absolute top-3 left-3 grid place-content-center w-[34px] h-[34px] rounded-full text-ink active:scale-95 transition"
-          style={{ background: 'rgb(255 255 255 / 0.9)' }}
+          style={{ background: 'var(--color-overlay-btn)' }}
           aria-label="Zurück"
         >
           <Icon name="arrowLeft" size={17} strokeWidth={2.2} />
@@ -217,14 +263,14 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
         <button
           onClick={() => patch({ is_favorite: !recipe.is_favorite })}
           className="absolute top-3 right-3 grid place-content-center w-[34px] h-[34px] rounded-full text-love active:scale-95 transition"
-          style={{ background: 'rgb(255 255 255 / 0.9)' }}
+          style={{ background: 'var(--color-overlay-btn)' }}
           aria-label="Favorit"
         >
           <Icon name="heart" size={17} filled={recipe.is_favorite} strokeWidth={2} />
         </button>
         <span
           className="absolute bottom-3 left-3 rounded-full px-3 py-1.5 text-[11.5px] font-semibold text-ink-2"
-          style={{ background: 'rgb(255 255 255 / 0.92)' }}
+          style={{ background: 'var(--color-overlay-btn)' }}
         >
           {cooked ? 'Gekocht' : 'Zum Ausprobieren'}
         </span>
@@ -357,7 +403,7 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
                     key={s}
                     onClick={() => patch({ rating: recipe.rating === s ? null : s })}
                     className="active:scale-90 transition"
-                    style={{ color: recipe.rating >= s ? 'var(--color-star)' : '#C7C7CC' }}
+                    style={{ color: recipe.rating >= s ? 'var(--color-star)' : 'var(--color-line)' }}
                     aria-label={`${s} Sterne`}
                   >
                     <Icon name="star" size={26} filled={recipe.rating >= s} strokeWidth={1.7} />
@@ -401,6 +447,31 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
                 <p className="mt-2 text-[13.5px] font-medium text-tint">Gespeichert.</p>
               )}
             </div>
+
+            {/* Aktionen */}
+            <div className={`${cardCls} overflow-hidden`}>
+              <button
+                onClick={() => setEditing(true)}
+                className="relative w-full flex items-center gap-2.5 px-4 py-3.5 text-[15px] font-semibold text-tint active:bg-black/[0.03] transition"
+              >
+                <Icon name="edit" size={16} strokeWidth={2} />
+                Rezept bearbeiten
+                <span className="absolute bottom-0 left-4 right-0 pointer-events-none" style={{ height: 0.5, background: 'var(--color-separator)' }} />
+              </button>
+              <button
+                onClick={shareRecipe}
+                className="w-full flex items-center gap-2.5 px-4 py-3.5 text-[15px] font-semibold text-tint active:bg-black/[0.03] transition"
+              >
+                <Icon name="share" size={16} strokeWidth={2} />
+                Rezept teilen
+              </button>
+            </div>
+            {shareMsg && (
+              <p className="flex items-center gap-2 rounded-[12px] bg-tint-soft px-4 py-3 text-[13.5px] font-medium text-tint">
+                <Icon name="check" size={15} strokeWidth={2.6} />
+                {shareMsg}
+              </p>
+            )}
 
             {recipe.source_url && (
               <a

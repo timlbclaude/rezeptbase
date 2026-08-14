@@ -225,6 +225,57 @@ async function fetchTikTok(rawUrl: string) {
   };
 }
 
+// ---------- Instagram ----------
+
+function isInstagram(url: string): boolean {
+  return /instagram\.com\/(reel|reels|p|tv)\//.test(url);
+}
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+}
+
+async function fetchInstagram(url: string) {
+  let caption = "", image: string | null = null;
+  const code = (url.match(/(?:reel|reels|p|tv)\/([A-Za-z0-9_-]+)/) || [])[1] ?? null;
+  try {
+    // Instagram liefert Crawlern die OG-Metadaten (Caption + Bild)
+    const r = await fetch(url, {
+      redirect: "follow",
+      headers: { "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)" },
+    });
+    if (r.ok) {
+      const html = await r.text();
+      const og = (p: string) => {
+        const m =
+          html.match(new RegExp(`<meta[^>]+property=["']og:${p}["'][^>]+content=["']([^"']*)["']`, "i")) ||
+          html.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+property=["']og:${p}["']`, "i"));
+        return m ? decodeEntities(m[1]) : "";
+      };
+      caption = [og("title"), og("description")].filter(Boolean).join("\n");
+      const img = og("image");
+      if (img) image = await inlineImage(img);
+    }
+  } catch (_) { /* Websuche-Fallback greift */ }
+
+  const content = caption.length >= 30
+    ? `INSTAGRAM-REEL (Titel + Caption):\n${caption}\n\nQUELLE: ${url}`
+    : `INSTAGRAM-REEL: ${url}\n(Die Caption konnte nicht ausgelesen werden – bitte per Websuche nach diesem Rezept suchen.)`;
+
+  return {
+    content,
+    source_type: "instagram",
+    video_embed_url: code ? `https://www.instagram.com/p/${code}/embed/` : null,
+    image_url: image,
+  };
+}
+
 // ---------- Webseite ----------
 
 function findRecipeJsonLd(html: string): unknown | null {
@@ -317,16 +368,48 @@ const RECIPE_TOOL = {
           required: ["name", "amount", "unit", "is_scalable"],
         },
       },
-      steps: { type: "array", items: { type: "string" }, description: "Kochschritte auf Deutsch, je ein vollständiger Schritt" },
+      steps: {
+        type: "array",
+        description: "Kochschritte in Reihenfolge",
+        items: {
+          type: "object",
+          properties: {
+            text: { type: "string", description: "Der Kochschritt auf Deutsch, vollständig formuliert" },
+            timer_min: {
+              type: ["number", "null"],
+              description: "Minuten für einen Küchentimer, wenn der Schritt eine konkrete Wartezeit hat (köcheln, backen, ruhen …), sonst null",
+            },
+            zutaten: {
+              type: ["string", "null"],
+              description: "Die in diesem Schritt verwendeten Zutaten mit Menge, kurz (z.B. '2 EL Butter, 1 Zwiebel'), sonst null",
+            },
+          },
+          required: ["text"],
+        },
+      },
     },
     required: ["erkannt", "title", "base_servings", "category", "ingredients", "steps"],
   },
 };
 
-async function extractWithClaude(content: string): Promise<any> {
+async function extractWithClaude(content: string, image?: { data: string; media_type: string }): Promise<any> {
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY fehlt (Supabase Secret)");
   const model = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-5";
+
+  const prompt =
+    "Extrahiere aus der folgenden Quelle ein Kochrezept. Übersetze alles ins Deutsche. " +
+    "Mengen als Zahlen (Brüche wie '1/2' als 0.5). " +
+    "Gib bei Schritten mit konkreter Wartezeit timer_min an und liste je Schritt die verwendeten Zutaten (zutaten). " +
+    "Wenn die Quelle kein Rezept enthält, setze erkannt=false.\n\n---\n\n" +
+    content.slice(0, 150000);
+
+  const userContent = image
+    ? [
+        { type: "image", source: { type: "base64", media_type: image.media_type, data: image.data } },
+        { type: "text", text: prompt },
+      ]
+    : prompt;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -340,13 +423,7 @@ async function extractWithClaude(content: string): Promise<any> {
       max_tokens: 4096,
       tools: [RECIPE_TOOL],
       tool_choice: { type: "tool", name: "rezept_speichern" },
-      messages: [{
-        role: "user",
-        content:
-          "Extrahiere aus der folgenden Quelle ein Kochrezept. Übersetze alles ins Deutsche. " +
-          "Mengen als Zahlen (Brüche wie '1/2' als 0.5). Wenn die Quelle kein Rezept enthält, setze erkannt=false.\n\n---\n\n" +
-          content.slice(0, 150000),
-      }],
+      messages: [{ role: "user", content: userContent }],
     }),
   });
 
@@ -383,7 +460,8 @@ async function extractViaWebSearch(content: string): Promise<any | null> {
       messages: [{
         role: "user",
         content:
-          "Das folgende Kochvideo (YouTube oder TikTok) enthält das Rezept nicht oder nur unvollständig als Text. " +
+          "Das folgende Kochvideo (YouTube, TikTok oder Instagram) enthält das Rezept nicht oder nur unvollständig als Text. " +
+          "Gib bei Schritten mit konkreter Wartezeit timer_min an und liste je Schritt die verwendeten Zutaten. " +
           "Suche im Web nach genau diesem Rezept (bevorzugt vom selben Koch/Kanal, sonst ein sehr ähnliches klassisches Rezept für dieses Gericht). " +
           "Übersetze alles ins Deutsche, Mengen als Zahlen. " +
           "Rufe am Ende ZWINGEND das Tool rezept_speichern mit dem vollständigen Rezept auf. " +
@@ -406,10 +484,18 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Nur POST erlaubt" }, 405);
 
   try {
-    const { url, text } = await req.json();
+    const { url, text, image_base64, image_type } = await req.json();
     let source;
 
-    if (text && text.trim().length > 20) {
+    if (image_base64 && typeof image_base64 === "string" && image_base64.length > 100) {
+      source = {
+        content: "REZEPT-FOTO (siehe Bild): Kochbuchseite, Notiz oder Screenshot.",
+        source_type: "foto",
+        video_embed_url: null,
+        image_url: null,
+        image: { data: image_base64, media_type: image_type ?? "image/jpeg" },
+      };
+    } else if (text && text.trim().length > 20) {
       source = {
         content: "MANUELL EINGEFÜGTER TEXT:\n" + text.slice(0, 50000),
         source_type: "manual",
@@ -429,6 +515,13 @@ Deno.serve(async (req) => {
             source.video_embed_url = tt.video_embed_url;
             source.image_url = tt.image_url;
           } catch (_) { /* Text reicht */ }
+        } else if (isInstagram(url)) {
+          source.source_type = "instagram";
+          try {
+            const ig = await fetchInstagram(url);
+            source.video_embed_url = ig.video_embed_url;
+            source.image_url = ig.image_url;
+          } catch (_) { /* Text reicht */ }
         } else {
           source.source_type = "web";
         }
@@ -439,7 +532,9 @@ Deno.serve(async (req) => {
         ? await fetchYouTube(url, id)
         : isTikTok(url)
           ? await fetchTikTok(url)
-          : await fetchWebsite(url);
+          : isInstagram(url)
+            ? await fetchInstagram(url)
+            : await fetchWebsite(url);
     } else {
       return json({ error: "Bitte eine URL oder Text angeben" }, 400);
     }
@@ -451,8 +546,8 @@ Deno.serve(async (req) => {
       }, 422);
     }
 
-    let recipe = await extractWithClaude(source.content);
-    const isVideoSource = ["youtube", "short", "tiktok"].includes(source.source_type);
+    let recipe = await extractWithClaude(source.content, (source as any).image);
+    const isVideoSource = ["youtube", "short", "tiktok", "instagram"].includes(source.source_type);
     if (recipe.erkannt === false && isVideoSource) {
       const found = await extractViaWebSearch(source.content);
       if (found && found.erkannt !== false) {
@@ -473,7 +568,6 @@ Deno.serve(async (req) => {
       return json({
         error: "In dieser Quelle wurde kein Rezept erkannt. Bitte prüfe den Link oder füge das Rezept als Text ein.",
         needs_manual: true,
-        debug_content: source.content.slice(0, 500),
       }, 422);
     }
 

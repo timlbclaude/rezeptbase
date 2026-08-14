@@ -233,7 +233,7 @@ export default function CookMode({ recipe, ingredients, servings, formatAmount, 
             style={{ borderRadius: '22px 22px 0 0', boxShadow: 'var(--shadow-sheet)', paddingBottom: 'max(28px, env(safe-area-inset-bottom))' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto rounded-full" style={{ width: 38, height: 4, background: '#D9D9DE' }} />
+            <div className="mx-auto rounded-full" style={{ width: 38, height: 4, background: 'var(--color-handle)' }} />
             <h3 className="text-[17px] font-bold text-ink mt-4 mb-2">
               Zutaten für {servings} {servings === 1 ? 'Portion' : 'Portionen'}
             </h3>

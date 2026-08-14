@@ -33,6 +33,60 @@
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04);
   --shadow-sheet: 0 -8px 30px rgb(0 0 0 / 0.12);
+
+  /* Chrom-Flächen & Linien (hell) */
+  --color-bar: rgb(249 249 251 / 0.92);
+  --color-fill-2: #ECECF0;
+  --color-handle: #D9D9DE;
+  --color-line: #C7C7CC;
+  --color-overlay-btn: rgb(255 255 255 / 0.9);
+}
+
+/* Dark Mode — iOS-Dunkelpalette. Aktiv per Systemeinstellung
+   oder erzwingbar mit ?theme=dark (Test) bzw. ?theme=light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-tint: #4DA955;
+    --color-tint-dark: #3F9147;
+    --color-tint-soft: rgb(77 169 85 / 0.18);
+    --color-bg: #000000;
+    --color-card: #1C1C1E;
+    --color-fill: #2C2C2E;
+    --color-ink: #F2F2F7;
+    --color-ink-2: rgb(235 235 245 / 0.72);
+    --color-ink-3: rgb(235 235 245 / 0.5);
+    --color-ink-4: rgb(235 235 245 / 0.32);
+    --color-love: #E0604A;
+    --color-separator: rgb(84 84 88 / 0.5);
+    --color-bar: rgb(18 18 20 / 0.9);
+    --color-fill-2: #3A3A3C;
+    --color-handle: #48484A;
+    --color-line: #48484A;
+    --color-overlay-btn: rgb(44 44 46 / 0.85);
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-sheet: 0 -8px 30px rgb(0 0 0 / 0.55);
+  }
+}
+:root[data-theme="dark"] {
+  --color-tint: #4DA955;
+  --color-tint-dark: #3F9147;
+  --color-tint-soft: rgb(77 169 85 / 0.18);
+  --color-bg: #000000;
+  --color-card: #1C1C1E;
+  --color-fill: #2C2C2E;
+  --color-ink: #F2F2F7;
+  --color-ink-2: rgb(235 235 245 / 0.72);
+  --color-ink-3: rgb(235 235 245 / 0.5);
+  --color-ink-4: rgb(235 235 245 / 0.32);
+  --color-love: #E0604A;
+  --color-separator: rgb(84 84 88 / 0.5);
+  --color-bar: rgb(18 18 20 / 0.9);
+  --color-fill-2: #3A3A3C;
+  --color-handle: #48484A;
+  --color-line: #48484A;
+  --color-overlay-btn: rgb(44 44 46 / 0.85);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-sheet: 0 -8px 30px rgb(0 0 0 / 0.55);
 }
 
 html {
@@ -64,7 +118,7 @@ body {
   to { background-position: -200% 0; }
 }
 .skeleton {
-  background: linear-gradient(100deg, #E3E3E8 40%, #ECECF0 50%, #E3E3E8 60%);
+  background: linear-gradient(100deg, var(--color-fill) 40%, var(--color-fill-2) 50%, var(--color-fill) 60%);
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
 }
@@ -79,7 +133,7 @@ body {
   width: 23px;
   height: 23px;
   border-radius: 999px;
-  border: 1.8px solid #C7C7CC;
+  border: 1.8px solid var(--color-line);
   background: var(--color-card);
   display: grid;
   place-content: center;
