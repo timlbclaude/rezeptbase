@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase, isConfigured } from './lib/supabase.js'
+import { initTheme } from './lib/theme.js'
 
-// Theme erzwingen (Test/Präferenz): ?theme=dark bzw. ?theme=light
-const themeParam = new URLSearchParams(window.location.search).get('theme')
-if (themeParam === 'dark' || themeParam === 'light') {
-  document.documentElement.dataset.theme = themeParam
-}
+// Gespeicherte Darstellung anwenden (?theme=dark|light erzwingt fürs Testen)
+initTheme()
 import Login from './pages/Login.jsx'
 import Recipes from './pages/Recipes.jsx'
 import Icon from './components/Icon.jsx'

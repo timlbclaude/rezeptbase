@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { applyTheme, getTheme } from '../lib/theme.js'
 import ImportPage from './ImportPage.jsx'
 import RecipeDetail from './RecipeDetail.jsx'
 import ShoppingList from './ShoppingList.jsx'
@@ -151,6 +152,7 @@ export default function Recipes({ session }) {
   const [sortBy, setSortBy] = useState('neueste')
   const [catFilter, setCatFilter] = useState(null)
   const [filterOpen, setFilterOpen] = useState(false)
+  const [theme, setTheme] = useState(getTheme)
 
   const loadRecipes = useCallback(() => {
     supabase
@@ -447,6 +449,30 @@ export default function Recipes({ session }) {
                 <p className="text-[13.5px] text-ink-3">{session.user.email}</p>
               </div>
             </div>
+
+            {/* Darstellung: System / Hell / Dunkel */}
+            <p className="text-[12px] font-semibold uppercase text-ink-3 mb-2" style={{ letterSpacing: '0.03em' }}>
+              Darstellung
+            </p>
+            <div className="flex bg-fill rounded-[10px] p-0.5 mb-6">
+              {[
+                { key: 'system', label: 'System' },
+                { key: 'light', label: 'Hell' },
+                { key: 'dark', label: 'Dunkel' },
+              ].map((o) => (
+                <button
+                  key={o.key}
+                  onClick={() => { applyTheme(o.key); setTheme(o.key) }}
+                  className={`flex-1 rounded-[8px] py-1.5 text-[13.5px] font-semibold transition ${
+                    theme === o.key ? 'bg-card text-ink' : 'text-ink-2'
+                  }`}
+                  style={theme === o.key ? { boxShadow: '0 1px 3px rgb(0 0 0 / 0.08)' } : {}}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+
             <button
               onClick={() => supabase.auth.signOut()}
               className="w-full h-[50px] rounded-[14px] bg-fill text-[16px] font-semibold text-love active:opacity-80 transition"
