@@ -277,7 +277,7 @@ export default function ImportPage({ onDone, onCancel }) {
     <div className="mx-auto max-w-2xl px-4 pt-5 animate-rise pb-16">
       {Header}
       <p className="text-[14.5px] text-ink-3 mb-6">
-        Füge einen Link ein – YouTube-Video, Short oder Kochseite. Die KI extrahiert Zutaten und Schritte automatisch.
+        Füge einen Link ein – YouTube, TikTok, Short oder Kochseite. Die KI extrahiert Zutaten und Schritte automatisch.
       </p>
       <form onSubmit={handleExtract} className="space-y-4">
         <div className="relative">

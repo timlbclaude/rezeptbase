@@ -1,5 +1,5 @@
 // Rezeptbase – Edge Function "import-recipe"
-// Nimmt eine URL (YouTube/Shorts/Kochseite) oder Rohtext entgegen,
+// Nimmt eine URL (YouTube/Shorts/TikTok/Kochseite) oder Rohtext entgegen,
 // holt den Inhalt und lässt Claude ein strukturiertes Rezept extrahieren.
 
 const CORS = {
@@ -156,6 +156,72 @@ async function fetchYouTube(url: string, id: string) {
     source_type: isShort ? "short" : "youtube",
     video_embed_url: `https://www.youtube-nocookie.com/embed/${id}`,
     image_url: image,
+  };
+}
+
+// ---------- TikTok ----------
+
+function isTikTok(url: string): boolean {
+  return /(?:www\.|vm\.|vt\.)?tiktok\.com\//.test(url);
+}
+
+// Kurzlinks (vm.tiktok.com/… , tiktok.com/t/…) zur vollen Video-URL auflösen
+async function resolveTikTokUrl(url: string): Promise<string> {
+  if (/tiktok\.com\/@[^/]+\/video\/\d+/.test(url)) return url;
+  try {
+    const r = await fetch(url, {
+      redirect: "follow",
+      headers: { "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X)" },
+    });
+    return r.url || url;
+  } catch (_) {
+    return url;
+  }
+}
+
+// Vorschaubild herunterladen und als data-URL einbetten
+// (TikTok-Thumbnail-URLs laufen nach ~2 Tagen ab und wären danach kaputt)
+async function inlineImage(url: string): Promise<string | null> {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const buf = new Uint8Array(await r.arrayBuffer());
+    if (buf.length === 0 || buf.length > 250000) return null;
+    const type = r.headers.get("content-type")?.split(";")[0] ?? "image/jpeg";
+    let bin = "";
+    for (let i = 0; i < buf.length; i += 8192) {
+      bin += String.fromCharCode(...buf.subarray(i, i + 8192));
+    }
+    return `data:${type};base64,${btoa(bin)}`;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function fetchTikTok(rawUrl: string) {
+  const url = await resolveTikTokUrl(rawUrl);
+  const oe = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
+  if (!oe.ok) {
+    throw new Error(`TikTok-Video nicht erreichbar (HTTP ${oe.status}). Ist der Link öffentlich?`);
+  }
+  const j = await oe.json();
+  const caption = j.title ?? "";
+  const author = j.author_name ?? "";
+  const id = (url.match(/video\/(\d{5,})/) || [])[1] ?? j.embed_product_id ?? null;
+  const image_url = j.thumbnail_url ? await inlineImage(j.thumbnail_url) : null;
+
+  const content = [
+    caption && `TIKTOK-CAPTION (Videobeschreibung): ${caption}`,
+    author && `KANAL: ${author}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return {
+    content,
+    source_type: "tiktok",
+    video_embed_url: id ? `https://www.tiktok.com/embed/v2/${id}` : null,
+    image_url,
   };
 }
 
@@ -317,7 +383,7 @@ async function extractViaWebSearch(content: string): Promise<any | null> {
       messages: [{
         role: "user",
         content:
-          "Das folgende Kochvideo enthält das Rezept nur gesprochen im Video, nicht als Text. " +
+          "Das folgende Kochvideo (YouTube oder TikTok) enthält das Rezept nicht oder nur unvollständig als Text. " +
           "Suche im Web nach genau diesem Rezept (bevorzugt vom selben Koch/Kanal, sonst ein sehr ähnliches klassisches Rezept für dieses Gericht). " +
           "Übersetze alles ins Deutsche, Mengen als Zahlen. " +
           "Rufe am Ende ZWINGEND das Tool rezept_speichern mit dem vollständigen Rezept auf. " +
@@ -356,13 +422,24 @@ Deno.serve(async (req) => {
           source.source_type = url.includes("/shorts/") ? "short" : "youtube";
           source.video_embed_url = `https://www.youtube-nocookie.com/embed/${id}`;
           source.image_url = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+        } else if (isTikTok(url)) {
+          source.source_type = "tiktok";
+          try {
+            const tt = await fetchTikTok(url);
+            source.video_embed_url = tt.video_embed_url;
+            source.image_url = tt.image_url;
+          } catch (_) { /* Text reicht */ }
         } else {
           source.source_type = "web";
         }
       }
     } else if (url) {
       const id = youtubeId(url);
-      source = id ? await fetchYouTube(url, id) : await fetchWebsite(url);
+      source = id
+        ? await fetchYouTube(url, id)
+        : isTikTok(url)
+          ? await fetchTikTok(url)
+          : await fetchWebsite(url);
     } else {
       return json({ error: "Bitte eine URL oder Text angeben" }, 400);
     }
@@ -375,11 +452,21 @@ Deno.serve(async (req) => {
     }
 
     let recipe = await extractWithClaude(source.content);
-    if (recipe.erkannt === false && (source.source_type === "youtube" || source.source_type === "short")) {
+    const isVideoSource = ["youtube", "short", "tiktok"].includes(source.source_type);
+    if (recipe.erkannt === false && isVideoSource) {
       const found = await extractViaWebSearch(source.content);
       if (found && found.erkannt !== false) {
         recipe = found;
         recipe.description = ((recipe.description ?? "") + " (Rezept per Websuche zum Video gefunden – bitte prüfen.)").trim();
+      }
+    } else if (isVideoSource && (!Array.isArray(recipe.steps) || recipe.steps.length < 2)) {
+      // z.B. TikTok-Caption: Zutaten stehen im Text, die Schritte nur im Video
+      const found = await extractViaWebSearch(source.content);
+      if (found && found.erkannt !== false && Array.isArray(found.steps) && found.steps.length >= 2) {
+        recipe.steps = found.steps;
+        if (!recipe.prep_time_min) recipe.prep_time_min = found.prep_time_min ?? null;
+        if (!recipe.cook_time_min) recipe.cook_time_min = found.cook_time_min ?? null;
+        recipe.description = ((recipe.description ?? "") + " (Kochschritte per Websuche ergänzt – bitte prüfen.)").trim();
       }
     }
     if (recipe.erkannt === false) {
