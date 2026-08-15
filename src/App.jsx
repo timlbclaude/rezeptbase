@@ -7,6 +7,8 @@ initTheme()
 import Login from './pages/Login.jsx'
 import Recipes from './pages/Recipes.jsx'
 import Icon from './components/Icon.jsx'
+import Toast from './components/Toast.jsx'
+import { isReadOnlySession } from './lib/roles.js'
 
 export function Logo({ size = 40 }) {
   return (
@@ -61,5 +63,10 @@ export default function App() {
     )
   }
 
-  return session ? <Recipes session={session} /> : <Login />
+  return (
+    <>
+      <Toast />
+      {session ? <Recipes session={session} readOnly={isReadOnlySession(session)} /> : <Login />}
+    </>
+  )
 }

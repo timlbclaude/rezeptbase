@@ -2,6 +2,10 @@
 // mit Oberbegriffen/Synonymen und Mehrwort-Logik (alle Wörter müssen passen).
 // Die KI-Schlagworte je Rezept (recipes.keywords) sind die Hauptquelle,
 // das Lexikon hier ist das Sicherheitsnetz für Oberbegriffe.
+//
+// V1.3: Wort-basierte Treffer statt Teilstring im Gesamttext.
+// Vorher matchte „Hähnchen" u. a. „brauner Zucker", weil der h-tolerante
+// Vergleich („hühner" → „uner") als Teilstring gesucht wurde.
 
 const GROUPS = [
   ['teigwaren', 'pasta', 'nudel', 'nudeln', 'spaghetti', 'hornli', 'rigatoni', 'penne', 'tortiglioni', 'makkaroni', 'maccheroni', 'tagliatelle', 'lasagne', 'manti', 'spatzli', 'ravioli', 'tortellini', 'fusilli', 'linguine', 'orecchiette', 'gnocchi'],
@@ -46,7 +50,9 @@ function variants(word) {
   return [...set]
 }
 
-// Durchsuchbarer Text eines Rezepts (einmal pro Rezept aufbauen)
+const stripH = (s) => s.replace(/h/g, '')
+
+// Durchsuchbarer Text eines Rezepts als WORT-LISTE (einmal pro Rezept aufbauen)
 export function buildHaystack(r) {
   const parts = [
     r.title,
@@ -56,19 +62,30 @@ export function buildHaystack(r) {
     ...(r.keywords ?? []),
     ...(r.ingredients ?? []).map((i) => i.name),
   ]
-  const hay = normalize(parts.filter(Boolean).join(' '))
-  return { hay, hayNoH: hay.replace(/h/g, '') }
+  const text = normalize(parts.filter(Boolean).join(' '))
+  const tokens = [...new Set(text.split(/[^a-z0-9]+/).filter(Boolean))]
+  return { tokens }
 }
 
-// Mehrwort-Suche: JEDES Wort der Anfrage muss (in irgendeiner Variante) vorkommen.
-// h-toleranter Zweitvergleich fängt Schreibweisen wie „Spägetti" ab.
+// Trifft eine Variante auf ein einzelnes Wort des Rezepts zu?
+// - exakt gleich
+// - Wort beginnt mit der Variante (ab 4 Zeichen: „huhn" → „hühnerbrühe")
+// - Variante steckt im Wort (ab 5 Zeichen: „salat" → „nudelsalat")
+// - Tippfehler-Toleranz: OHNE h identisch, nur als GANZES Wort
+//   („spägetti" → „spaghetti", aber nie mehr „hühner" → „brauner")
+function tokenMatches(token, v) {
+  if (token === v) return true
+  if (v.length >= 5 && token.includes(v)) return true
+  if (v.length === 4 && token.startsWith(v)) return true
+  if (v.length >= 5 && stripH(token) === stripH(v)) return true
+  return false
+}
+
+// Mehrwort-Suche: JEDES Wort der Anfrage muss (in irgendeiner Variante) passen.
 export function matchesQuery(haystack, query) {
   const words = normalize(query).split(/\s+/).filter(Boolean)
-  return words.every((w) =>
-    variants(w).some(
-      (v) =>
-        haystack.hay.includes(v) ||
-        (v.length >= 5 && haystack.hayNoH.includes(v.replace(/h/g, ''))),
-    ),
-  )
+  return words.every((w) => {
+    const vs = variants(w)
+    return haystack.tokens.some((t) => vs.some((v) => tokenMatches(t, v)))
+  })
 }

@@ -23,8 +23,9 @@ export default function Login() {
   const labelCls = 'text-[12px] font-semibold uppercase tracking-[0.03em] text-ink-3'
 
   return (
-    <div className="min-h-svh flex items-center justify-center p-6 animate-rise">
-      <div className="w-full max-w-sm">
+    <div className="min-h-svh flex items-center justify-center animate-rise" style={{ padding: 24 }}>
+      {/* Explizite Breiten, damit das Formular auf jedem Desktop stabil bleibt */}
+      <div style={{ width: '100%', maxWidth: 420, margin: '0 auto' }}>
         <div className="text-center mb-10">
           <div className="flex justify-center mb-5"><Logo size={74} /></div>
           <h1 className="text-[28px] font-bold text-ink">Rezeptbase</h1>

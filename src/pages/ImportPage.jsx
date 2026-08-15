@@ -1,5 +1,8 @@
 import { useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { runWrite, translateError } from '../lib/mutate.js'
+import { notify } from '../lib/notify.js'
+import { READ_ONLY_MSG } from '../lib/roles.js'
 import Icon from '../components/Icon.jsx'
 
 const CATEGORIES = ['Vorspeise', 'Hauptgericht', 'Beilage', 'Dessert', 'Frühstück', 'Snack', 'Getränk', 'Backen']
@@ -33,7 +36,7 @@ function photoToBase64(file) {
   })
 }
 
-export default function ImportPage({ onDone, onCancel, editRecipe }) {
+export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = false }) {
   const isEdit = Boolean(editRecipe)
   const [url, setUrl] = useState('')
   const [manualText, setManualText] = useState('')
@@ -133,6 +136,7 @@ export default function ImportPage({ onDone, onCancel, editRecipe }) {
   }
 
   async function handleSave() {
+    if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
     setBusy(true)
     setError(null)
     const p = preview
@@ -159,31 +163,39 @@ export default function ImportPage({ onDone, onCancel, editRecipe }) {
     let recipeId
     if (isEdit) {
       recipeId = editRecipe.recipe.id
-      const { error: upError } = await supabase.from('recipes').update(fields).eq('id', recipeId)
-      if (upError) {
-        setError('Speichern fehlgeschlagen: ' + upError.message)
+      const up = await runWrite(supabase.from('recipes').update(fields).eq('id', recipeId), { silent: true })
+      if (!up.ok) {
+        setError(up.message)
         setBusy(false)
         return
       }
-      await supabase.from('ingredients').delete().eq('recipe_id', recipeId)
+      const del = await runWrite(supabase.from('ingredients').delete().eq('recipe_id', recipeId), { silent: true })
+      if (!del.ok) {
+        setError(del.message)
+        setBusy(false)
+        return
+      }
     } else {
-      const { data: rec, error: insError } = await supabase
-        .from('recipes')
-        .insert({
-          ...fields,
-          source_url: p.source_url ?? null,
-          source_type: p.source_type ?? 'manual',
-          video_embed_url: p.video_embed_url ?? null,
-          image_url: p.image_url || null,
-        })
-        .select('id')
-        .single()
-      if (insError || !rec) {
-        setError('Speichern fehlgeschlagen: ' + (insError?.message ?? ''))
+      const ins = await runWrite(
+        supabase
+          .from('recipes')
+          .insert({
+            ...fields,
+            source_url: p.source_url ?? null,
+            source_type: p.source_type ?? 'manual',
+            video_embed_url: p.video_embed_url ?? null,
+            image_url: p.image_url || null,
+          })
+          .select('id')
+          .single(),
+        { silent: true },
+      )
+      if (!ins.ok || !ins.data) {
+        setError(ins.message ?? translateError(null))
         setBusy(false)
         return
       }
-      recipeId = rec.id
+      recipeId = ins.data.id
     }
 
     const rows = p.ingredients
@@ -197,9 +209,9 @@ export default function ImportPage({ onDone, onCancel, editRecipe }) {
         sort_order: i,
       }))
     if (rows.length) {
-      const { error: ingError } = await supabase.from('ingredients').insert(rows)
-      if (ingError) {
-        setError('Zutaten konnten nicht gespeichert werden: ' + ingError.message)
+      const ingRes = await runWrite(supabase.from('ingredients').insert(rows), { silent: true })
+      if (!ingRes.ok) {
+        setError(ingRes.message)
         setBusy(false)
         return
       }
@@ -392,6 +404,8 @@ export default function ImportPage({ onDone, onCancel, editRecipe }) {
               {isEdit ? 'Abbrechen' : 'Zurück'}
             </button>
             <button onClick={handleSave} disabled={busy || !preview.title.trim()}
+              style={{ opacity: readOnly ? 0.5 : undefined }}
+              aria-disabled={readOnly}
               className="flex-[2] h-[50px] rounded-[14px] bg-tint text-white text-[16px] font-semibold flex items-center justify-center gap-2 active:bg-tint-dark transition disabled:opacity-45">
               <Icon name="check" size={17} strokeWidth={2.4} />
               {busy ? 'Speichern …' : isEdit ? 'Änderungen speichern' : 'Rezept speichern'}

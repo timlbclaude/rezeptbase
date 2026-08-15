@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { runWrite } from '../lib/mutate.js'
+import { notify } from '../lib/notify.js'
+import { READ_ONLY_MSG } from '../lib/roles.js'
 import Icon from '../components/Icon.jsx'
 import CookMode from '../components/CookMode.jsx'
 import ImportPage from './ImportPage.jsx'
@@ -55,7 +58,7 @@ const SEGMENTS = [
   { key: 'notizen', label: 'Notizen' },
 ]
 
-export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
+export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = false }) {
   const [recipe, setRecipe] = useState(null)
   const [ingredients, setIngredients] = useState([])
   const [loading, setLoading] = useState(true)
@@ -88,9 +91,14 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
     loadData()
   }, [loadData])
 
+  // Optimistisch anzeigen, aber bei Server-Fehler vollständig zurückrollen.
   async function patch(fields) {
+    if (readOnly) { notify(READ_ONLY_MSG, 'info'); return false }
+    const prev = recipe
     setRecipe((r) => ({ ...r, ...fields }))
-    await supabase.from('recipes').update(fields).eq('id', recipeId)
+    const { ok } = await runWrite(supabase.from('recipes').update(fields).eq('id', recipeId))
+    if (!ok) setRecipe(prev)
+    return ok
   }
 
   async function toggleStatus() {
@@ -106,13 +114,15 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
   }
 
   async function saveNotes() {
-    await patch({ notes: notes.trim() || null })
+    const ok = await patch({ notes: notes.trim() || null })
+    if (!ok) return // Eingabe bleibt erhalten, Fehler kam als Toast
     setNotesSaved(true)
     setNotesJustSaved(true)
     setTimeout(() => setNotesJustSaved(false), 3000)
   }
 
   async function addToShoppingList() {
+    if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
     setCartMessage('…')
     const factor = servings / (recipe.base_servings || 4)
     const { data: existing } = await supabase.from('shopping_list').select('*')
@@ -134,20 +144,26 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
           x.amount !== null &&
           amount !== null,
       )
+      let res
       if (match) {
-        await supabase
-          .from('shopping_list')
-          .update({ amount: Math.round((Number(match.amount) + amount) * 100) / 100 })
-          .eq('id', match.id)
-        match.amount = Number(match.amount) + amount
+        res = await runWrite(
+          supabase
+            .from('shopping_list')
+            .update({ amount: Math.round((Number(match.amount) + amount) * 100) / 100 })
+            .eq('id', match.id),
+        )
+        if (res.ok) match.amount = Number(match.amount) + amount
       } else {
-        await supabase.from('shopping_list').insert({
-          ingredient_name: ing.name,
-          amount,
-          unit: ing.unit ?? null,
-          source_recipe_id: recipeId,
-        })
+        res = await runWrite(
+          supabase.from('shopping_list').insert({
+            ingredient_name: ing.name,
+            amount,
+            unit: ing.unit ?? null,
+            source_recipe_id: recipeId,
+          }),
+        )
       }
+      if (!res.ok) { setCartMessage(null); return } // Fehler kam als Toast
       added++
     }
     setCartMessage(`${added} Zutaten (für ${servings} Portionen) auf der Einkaufsliste`)
@@ -186,6 +202,7 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
   if (editing && recipe) {
     return (
       <ImportPage
+        readOnly={readOnly}
         editRecipe={{ recipe, ingredients }}
         onCancel={() => setEditing(false)}
         onDone={() => { setEditing(false); setLoading(true); loadData() }}
@@ -263,7 +280,8 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
         <button
           onClick={() => patch({ is_favorite: !recipe.is_favorite })}
           className="absolute top-3 right-3 grid place-content-center w-[34px] h-[34px] rounded-full text-love active:scale-95 transition"
-          style={{ background: 'var(--color-overlay-btn)' }}
+          style={{ background: 'var(--color-overlay-btn)', opacity: readOnly ? 0.5 : undefined }}
+          aria-disabled={readOnly}
           aria-label="Favorit"
         >
           <Icon name="heart" size={17} filled={recipe.is_favorite} strokeWidth={2} />
@@ -403,7 +421,8 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
                     key={s}
                     onClick={() => patch({ rating: recipe.rating === s ? null : s })}
                     className="active:scale-90 transition"
-                    style={{ color: recipe.rating >= s ? 'var(--color-star)' : 'var(--color-line)' }}
+                    style={{ color: recipe.rating >= s ? 'var(--color-star)' : 'var(--color-line)', opacity: readOnly ? 0.5 : undefined }}
+                    aria-disabled={readOnly}
                     aria-label={`${s} Sterne`}
                   >
                     <Icon name="star" size={26} filled={recipe.rating >= s} strokeWidth={1.7} />
@@ -430,7 +449,8 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
             <div>
               <textarea
                 rows={4}
-                placeholder="z.B. weniger Salz nehmen, Beilage: Reis …"
+                readOnly={readOnly}
+                placeholder={readOnly ? 'Notizen (nur Leserechte)' : 'z.B. weniger Salz nehmen, Beilage: Reis …'}
                 value={notes}
                 onChange={(e) => { setNotes(e.target.value); setNotesSaved(false) }}
                 className={`${cardCls} rounded-[14px] w-full px-4 py-3.5 text-[15px] outline-none border border-transparent focus:border-tint focus:ring-4 focus:ring-tint-soft placeholder:text-ink-3`}
@@ -451,8 +471,10 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
             {/* Aktionen */}
             <div className={`${cardCls} overflow-hidden`}>
               <button
-                onClick={() => setEditing(true)}
+                onClick={() => (readOnly ? notify(READ_ONLY_MSG, 'info') : setEditing(true))}
                 className="relative w-full flex items-center gap-2.5 px-4 py-3.5 text-[15px] font-semibold text-tint active:bg-black/[0.03] transition"
+                style={{ opacity: readOnly ? 0.5 : undefined }}
+                aria-disabled={readOnly}
               >
                 <Icon name="edit" size={16} strokeWidth={2} />
                 Rezept bearbeiten
@@ -490,7 +512,11 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted }) {
                 <span className="text-[14px] text-ink-2">
                   Wirklich löschen?{' '}
                   <button
-                    onClick={async () => { await supabase.from('recipes').delete().eq('id', recipeId); onDeleted() }}
+                    onClick={async () => {
+                      if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
+                      const { ok } = await runWrite(supabase.from('recipes').delete().eq('id', recipeId))
+                      if (ok) onDeleted()
+                    }}
                     className="font-semibold text-love"
                   >
                     Ja, löschen

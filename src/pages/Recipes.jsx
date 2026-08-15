@@ -141,7 +141,7 @@ function RowSkeleton() {
   )
 }
 
-export default function Recipes({ session }) {
+export default function Recipes({ session, readOnly = false }) {
   const [tab, setTab] = useState('rezepte')
   const [screen, setScreen] = useState(null) // null | {name:'detail',id} | {name:'import'}
   const [profileOpen, setProfileOpen] = useState(false)
@@ -210,6 +210,7 @@ export default function Recipes({ session }) {
   if (screen?.name === 'import') {
     return (
       <ImportPage
+        readOnly={readOnly}
         onCancel={backToList}
         onDone={(id) => {
           loadRecipes()
@@ -219,13 +220,13 @@ export default function Recipes({ session }) {
     )
   }
   if (screen?.name === 'detail') {
-    return <RecipeDetail recipeId={screen.id} onBack={backToList} onDeleted={backToList} />
+    return <RecipeDetail recipeId={screen.id} readOnly={readOnly} onBack={backToList} onDeleted={backToList} />
   }
 
   return (
     <div className="min-h-svh pb-32">
       {tab === 'einkauf' ? (
-        <ShoppingList />
+        <ShoppingList readOnly={readOnly} />
       ) : (
         <main className="mx-auto max-w-2xl px-4 pt-5 animate-rise">
           {/* Kopf */}
@@ -445,6 +446,13 @@ export default function Recipes({ session }) {
                 <p className="text-[13.5px] text-ink-3">{session.user.email}</p>
               </div>
             </div>
+
+            {readOnly && (
+              <div className="mb-5 rounded-[12px] bg-fill px-4 py-3 text-[13.5px] text-ink-2">
+                Dieses Konto besitzt <strong>nur Leserechte</strong> – du kannst alles ansehen,
+                aber nichts speichern oder ändern.
+              </div>
+            )}
 
             {/* Darstellung: System / Hell / Dunkel */}
             <p className="text-[12px] font-semibold uppercase text-ink-3 mb-2" style={{ letterSpacing: '0.03em' }}>

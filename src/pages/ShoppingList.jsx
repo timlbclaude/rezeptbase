@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
+import { runWrite } from '../lib/mutate.js'
+import { notify } from '../lib/notify.js'
+import { READ_ONLY_MSG } from '../lib/roles.js'
 import Icon from '../components/Icon.jsx'
 
 function fmt(a) {
@@ -20,11 +23,12 @@ function parseEntry(text) {
   }
 }
 
-export default function ShoppingList() {
+export default function ShoppingList({ readOnly = false }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [newText, setNewText] = useState('')
   const [confirmClear, setConfirmClear] = useState(false)
+  const [busyAdd, setBusyAdd] = useState(false)
 
   function load() {
     supabase
@@ -42,35 +46,53 @@ export default function ShoppingList() {
   }, [])
 
   async function toggle(item) {
+    if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
+    const prev = items
     setItems((xs) => xs.map((x) => (x.id === item.id ? { ...x, checked: !x.checked } : x)))
-    await supabase.from('shopping_list').update({ checked: !item.checked }).eq('id', item.id)
+    const { ok } = await runWrite(supabase.from('shopping_list').update({ checked: !item.checked }).eq('id', item.id))
+    if (!ok) setItems(prev)
   }
 
   async function addManual(e) {
     e.preventDefault()
-    if (!newText.trim()) return
+    if (!newText.trim() || busyAdd) return
+    if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
+    setBusyAdd(true)
     const parsed = parseEntry(newText)
-    const { data } = await supabase
-      .from('shopping_list')
-      .insert({ ingredient_name: parsed.name, amount: parsed.amount, unit: parsed.unit })
-      .select('*')
-      .single()
-    if (data) setItems((xs) => [...xs, data])
-    setNewText('')
+    const { ok, data } = await runWrite(
+      supabase
+        .from('shopping_list')
+        .insert({ ingredient_name: parsed.name, amount: parsed.amount, unit: parsed.unit })
+        .select('*')
+        .single(),
+    )
+    // Eingabe wird erst geleert, wenn der Server das Speichern bestätigt hat.
+    if (ok && data) {
+      setItems((xs) => [...xs, data])
+      setNewText('')
+    }
+    setBusyAdd(false)
   }
 
   async function removeChecked() {
+    if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
     const ids = items.filter((x) => x.checked).map((x) => x.id)
     if (!ids.length) return
+    const prev = items
     setItems((xs) => xs.filter((x) => !x.checked))
-    await supabase.from('shopping_list').delete().in('id', ids)
+    const { ok } = await runWrite(supabase.from('shopping_list').delete().in('id', ids))
+    if (!ok) setItems(prev)
   }
 
   async function clearAll() {
+    if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
+    const prev = items
     const ids = items.map((x) => x.id)
     setItems([])
     setConfirmClear(false)
-    if (ids.length) await supabase.from('shopping_list').delete().in('id', ids)
+    if (!ids.length) return
+    const { ok } = await runWrite(supabase.from('shopping_list').delete().in('id', ids))
+    if (!ok) setItems(prev)
   }
 
   const open = items.filter((x) => !x.checked)
@@ -177,8 +199,10 @@ export default function ShoppingList() {
           />
           <button
             type="submit"
-            className="grid place-content-center rounded-[12px] bg-tint text-white shrink-0 active:bg-tint-dark active:scale-95 transition"
-            style={{ width: 46, height: 46 }}
+            disabled={busyAdd}
+            className="grid place-content-center rounded-[12px] bg-tint text-white shrink-0 active:bg-tint-dark active:scale-95 transition disabled:opacity-45"
+            style={{ width: 46, height: 46, opacity: readOnly ? 0.5 : undefined }}
+            aria-disabled={readOnly}
             aria-label="Hinzufügen"
           >
             <Icon name="plus" size={19} strokeWidth={2.4} />
