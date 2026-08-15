@@ -26,6 +26,12 @@ const rezepte = {
     keywords: ['hähnchen', 'poulet', 'cremig'],
     ingredients: [{ name: 'Hähnchenbrust' }, { name: 'Hühnerbrühe' }, { name: 'Sahne' }],
   }),
+  kfc: R('Koreanisches Fried Chicken', {
+    category: 'Hauptgericht',
+    description: 'Knusprig frittiert mit süß-scharfer Sauce',
+    keywords: ['hähnchen', 'poulet', 'koreanisch', 'scharf'],
+    ingredients: [{ name: 'Hähnchenflügel' }, { name: 'Gochujang' }],
+  }),
   spaghetti: R('Spaghetti al limone', {
     category: 'Hauptgericht',
     keywords: ['teigwaren', 'pasta', 'zitrone', 'vegetarisch'],
@@ -89,6 +95,12 @@ check('„hähnchen cremig" findet nur Marry Me Chicken', () =>
   assert.deepEqual(treffer('hähnchen cremig'), ['marryMe']))
 check('„hähnchen dessert" findet NICHTS', () =>
   assert.deepEqual(treffer('hähnchen dessert'), []))
+check('„dessert" matcht kein Hauptgericht mit süß-scharfer Sauce', () =>
+  assert.ok(!treffer('dessert').includes('kfc')))
+check('„dessert" findet das Cookie-Croissant', () =>
+  assert.ok(treffer('dessert').includes('cookie')))
+check('„hähnchen scharf" findet das Korean Fried Chicken', () =>
+  assert.ok(treffer('hähnchen scharf').includes('kfc')))
 check('„xyz123" findet nichts', () =>
   assert.deepEqual(treffer('xyz123'), []))
 
