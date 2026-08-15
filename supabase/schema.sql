@@ -49,23 +49,86 @@ create index recipes_user_idx on public.recipes (user_id, created_at desc);
 create index ingredients_recipe_idx on public.ingredients (recipe_id, sort_order);
 create index shopping_user_idx on public.shopping_list (user_id, created_at);
 
--- Row Level Security: jeder Nutzer sieht nur seine eigenen Daten
+-- Row Level Security: jeder Nutzer sieht nur seine eigenen Daten.
+-- Ausnahme (15.08.2026): Review-Nutzer review@rezeptbase.test
+-- (UUID 8e60d3c4-c4c6-4390-8680-0db0df4fd231) darf alles LESEN, nichts schreiben.
+-- Zum Entfernen des Review-Zugangs: Policies ohne die Reviewer-Klauseln neu anlegen
+-- und den Nutzer im Dashboard loeschen.
 alter table public.recipes enable row level security;
 alter table public.ingredients enable row level security;
 alter table public.shopping_list enable row level security;
 
-create policy "own recipes" on public.recipes
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
-create policy "own ingredients" on public.ingredients
-  for all using (
-    exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
+create policy "recipes select" on public.recipes
+  for select using (
+    auth.uid() = user_id
+    or auth.uid() = '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  );
+create policy "recipes insert" on public.recipes
+  for insert with check (
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  );
+create policy "recipes update" on public.recipes
+  for update using (
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
   ) with check (
-    exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  );
+create policy "recipes delete" on public.recipes
+  for delete using (
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
   );
 
-create policy "own shopping list" on public.shopping_list
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "ingredients select" on public.ingredients
+  for select using (
+    exists (select 1 from public.recipes r where r.id = recipe_id
+      and (r.user_id = auth.uid() or auth.uid() = '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid))
+  );
+create policy "ingredients insert" on public.ingredients
+  for insert with check (
+    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+    and exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
+  );
+create policy "ingredients update" on public.ingredients
+  for update using (
+    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+    and exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
+  ) with check (
+    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+    and exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
+  );
+create policy "ingredients delete" on public.ingredients
+  for delete using (
+    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+    and exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
+  );
+
+create policy "shopping select" on public.shopping_list
+  for select using (
+    auth.uid() = user_id
+    or auth.uid() = '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  );
+create policy "shopping insert" on public.shopping_list
+  for insert with check (
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  );
+create policy "shopping update" on public.shopping_list
+  for update using (
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  ) with check (
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  );
+create policy "shopping delete" on public.shopping_list
+  for delete using (
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  );
 
 -- Phase 4: Kochstatus
 alter table public.recipes add column if not exists status text not null default 'zum_ausprobieren' check (status in ('zum_ausprobieren','gekocht'));
