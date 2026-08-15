@@ -18,7 +18,9 @@ const GROUPS = [
   ['kase', 'cheese', 'mozzarella', 'burrata', 'feta', 'parmesan', 'sbrinz', 'cheddar'],
   ['reis', 'risotto', 'basmati'],
   ['kartoffel', 'kartoffeln', 'pommes', 'rosti'],
-  ['suss', 'susses', 'dessert', 'nachtisch', 'kuchen', 'sussspeise'],
+  // Bewusst OHNE „süss/süsses“: sonst matcht die Suche „Dessert“ auch
+  // Hauptgerichte mit „süß-scharfer Sauce“ o. Ä. (Prüfbericht-Abnahmetest).
+  ['dessert', 'nachtisch', 'kuchen', 'sussspeise', 'nachspeise'],
   ['scharf', 'chili', 'spicy', 'peperoni', 'jalapeno'],
   ['vegetarisch', 'vegi', 'veggie', 'fleischlos'],
   ['salat', 'salad', 'bowl'],
