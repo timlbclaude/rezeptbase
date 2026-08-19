@@ -8,7 +8,12 @@ import Icon from './Icon.jsx'
 // wie in der Zutatenliste – statt der rohen Original-Textmengen.
 function stepIngredients(step, ingredients) {
   if (!step?.zutaten) return null
-  const segs = String(step.zutaten).split(/[,;]|\sund\s/).map((s) => s.trim()).filter(Boolean)
+  // Nicht am Dezimalkomma splitten („0,5 TL“, „1,5 kg“) und
+  // rein numerische Rest-Segmente aussortieren.
+  const segs = String(step.zutaten)
+    .split(/;|,(?!\d)|\sund\s/)
+    .map((s) => s.trim())
+    .filter((s) => s && /[a-zäöüA-ZÄÖÜ]/.test(s))
   return segs.map((seg) => {
     const nseg = normalize(seg)
     const core = nseg.replace(/^[\d.,\s½¼¾/–-]+[a-z.]{0,12}\s*/, '')
