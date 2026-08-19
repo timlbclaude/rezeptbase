@@ -409,6 +409,8 @@ async function extractWithClaude(content: string, image?: { data: string; media_
   const prompt =
     "Extrahiere aus der folgenden Quelle ein Kochrezept. Übersetze alles ins Deutsche. " +
     "Mengen als Zahlen (Brüche wie '1/2' als 0.5). " +
+    "WICHTIG zu Einheiten: Übernimm die Einheiten der Quelle. Feste Zutaten (Mehl, Zucker, Käse, Butter, Reis, getrocknete Tomaten u.ä.) NIEMALS in ml/Liter angeben – " +
+    "verwende Gramm oder die Originaleinheit; amerikanische Cups bei festen Zutaten mit üblicher Dichte in Gramm umrechnen (1 Cup Mehl ≈ 120 g, Zucker ≈ 200 g, geriebener Käse ≈ 100 g). " +
     "Gib bei Schritten mit konkreter Wartezeit timer_min an und liste je Schritt die verwendeten Zutaten (zutaten). " +
     "Vergib 8-15 deutsche Suchbegriffe (keywords) inkl. Oberbegriffen und Synonymen (z.B. Teigwaren UND Pasta UND Nudeln). " +
     "Wenn die Quelle kein Rezept enthält, setze erkannt=false.\n\n---\n\n" +
@@ -473,7 +475,7 @@ async function extractViaWebSearch(content: string): Promise<any | null> {
           "Das folgende Kochvideo (YouTube, TikTok oder Instagram) enthält das Rezept nicht oder nur unvollständig als Text. " +
           "Gib bei Schritten mit konkreter Wartezeit timer_min an und liste je Schritt die verwendeten Zutaten. " +
           "Suche im Web nach genau diesem Rezept (bevorzugt vom selben Koch/Kanal, sonst ein sehr ähnliches klassisches Rezept für dieses Gericht). " +
-          "Übersetze alles ins Deutsche, Mengen als Zahlen. " +
+          "Übersetze alles ins Deutsche, Mengen als Zahlen. Feste Zutaten (Mehl, Zucker, Käse u.ä.) nie in ml angeben, sondern in Gramm bzw. der Originaleinheit (Cups mit üblicher Dichte in Gramm). " +
           "Rufe am Ende ZWINGEND das Tool rezept_speichern mit dem vollständigen Rezept auf. " +
           "Nur wenn du wirklich kein passendes Rezept findest, setze erkannt=false.\n\n---\n\n" +
           content.slice(0, 5000),

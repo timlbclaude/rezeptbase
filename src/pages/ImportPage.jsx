@@ -3,9 +3,23 @@ import { supabase } from '../lib/supabase.js'
 import { runWrite, translateError } from '../lib/mutate.js'
 import { notify } from '../lib/notify.js'
 import { READ_ONLY_MSG } from '../lib/roles.js'
+import { onImgError } from '../lib/imageFallback.js'
 import Icon from '../components/Icon.jsx'
 
 const CATEGORIES = ['Vorspeise', 'Hauptgericht', 'Beilage', 'Dessert', 'Frühstück', 'Snack', 'Getränk', 'Backen']
+
+// Plausibilitäts-Check: feste Zutaten sollten keine Volumen-Einheit tragen
+// („60 ml Mehl" ist fast immer ein Extraktionsfehler der Quelle/KI).
+const VOLUME_UNITS = ['ml', 'l', 'milliliter', 'liter', 'dl', 'cl']
+const SOLID_FOODS = ['mehl', 'zucker', 'käse', 'parmesan', 'mozzarella', 'cheddar', 'feta', 'butter', 'reis', 'haferflocken', 'getrocknete tomaten', 'kakao', 'paniermehl', 'semmelbrösel', 'nüsse', 'mandeln', 'stärke', 'griess', 'grieß', 'linsen', 'bohnen', 'quinoa', 'couscous']
+function unitWarnings(ingredients) {
+  return (ingredients ?? [])
+    .filter((i) =>
+      VOLUME_UNITS.includes((i.unit ?? '').toLowerCase().trim()) &&
+      SOLID_FOODS.some((s) => (i.name ?? '').toLowerCase().includes(s)),
+    )
+    .map((i) => [i.amount, i.unit, i.name].filter(Boolean).join(' '))
+}
 
 // Schritte können Text (alte Rezepte) oder Objekte {text, timer_min, zutaten} sein
 function normalizeSteps(steps) {
@@ -44,7 +58,7 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
   const [busy, setBusy] = useState(false)
   const [busyPhoto, setBusyPhoto] = useState(false)
   const [error, setError] = useState(null)
-  const [duplicate, setDuplicate] = useState(false)
+  const [duplicate, setDuplicate] = useState(null) // vorhandenes Rezept derselben Quelle
   const photoInputRef = useRef(null)
   const [preview, setPreview] = useState(() => {
     if (!isEdit) return null
@@ -97,15 +111,15 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
     e.preventDefault()
     setBusy(true)
     setError(null)
-    setDuplicate(false)
+    setDuplicate(null)
     try {
       if (url.trim()) {
         const { data: dup } = await supabase
           .from('recipes')
-          .select('id')
+          .select('id, title, base_servings, ingredients(count)')
           .eq('source_url', url.trim())
           .limit(1)
-        if (dup?.length) setDuplicate(true)
+        if (dup?.length) setDuplicate(dup[0])
       }
       const { data, error: fnError } = await supabase.functions.invoke('import-recipe', {
         body: { url: url.trim() || null, text: showManual ? manualText : null },
@@ -121,7 +135,7 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
     if (!file) return
     setBusyPhoto(true)
     setError(null)
-    setDuplicate(false)
+    setDuplicate(null)
     try {
       const image_base64 = await photoToBase64(file)
       const { data, error: fnError } = await supabase.functions.invoke('import-recipe', {
@@ -258,13 +272,26 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
             : 'Die KI hat Folgendes extrahiert – du kannst alles korrigieren, bevor es gespeichert wird.'}
         </p>
         {duplicate && (
-          <div className="mb-4 rounded-[12px] bg-fill px-4 py-3 text-[13.5px] text-ink-2">
-            Diese Quelle wurde schon einmal importiert. Du kannst trotzdem speichern.
+          <div className="mb-4 rounded-[12px] bg-fill px-4 py-3 text-[13.5px] text-ink-2 space-y-1">
+            <p className="font-semibold">Diese Quelle ist schon in deiner Sammlung.</p>
+            <p>
+              Vorhanden: „{duplicate.title}“ · {duplicate.ingredients?.[0]?.count ?? '?'} Zutaten · {duplicate.base_servings ?? '?'} Portionen
+              {' — '}neu erkannt: {preview.ingredients.length} Zutaten · {preview.base_servings || '?'} Portionen.
+            </p>
+            <p>Wenn du speicherst, entsteht ein zweites Rezept; das vorhandene bleibt unverändert.</p>
+          </div>
+        )}
+
+        {unitWarnings(preview.ingredients).length > 0 && (
+          <div className="mb-4 rounded-[12px] px-4 py-3 text-[13.5px]" style={{ background: 'rgb(245 166 35 / 0.14)', color: '#8a5a00' }}>
+            <p className="font-semibold mb-0.5">Bitte prüfen – ungewöhnliche Einheiten:</p>
+            {unitWarnings(preview.ingredients).map((w, i) => <p key={i}>• {w}</p>)}
+            <p className="mt-1">Feste Zutaten wie Mehl oder Käse werden normalerweise in Gramm angegeben.</p>
           </div>
         )}
 
         {preview.image_url && (
-          <img src={preview.image_url} alt="" className="w-full object-cover rounded-[16px] shadow-card mb-5" style={{ height: 150 }} />
+          <img src={preview.image_url} alt={preview.title || ''} onError={onImgError} className="w-full object-cover rounded-[16px] shadow-card mb-5" style={{ height: 150 }} />
         )}
 
         <div className="space-y-4">

@@ -3,48 +3,13 @@ import { supabase } from '../lib/supabase.js'
 import { runWrite } from '../lib/mutate.js'
 import { notify } from '../lib/notify.js'
 import { READ_ONLY_MSG } from '../lib/roles.js'
+import { onImgError } from '../lib/imageFallback.js'
 import Icon from '../components/Icon.jsx'
 import CookMode from '../components/CookMode.jsx'
 import ImportPage from './ImportPage.jsx'
 
-// Einheiten, die man nicht sinnvoll in Bruchteilen abmessen kann
-const COUNTABLE_UNITS = ['stück', 'zehe', 'zehen', 'bund', 'dose', 'dosen', 'scheibe', 'scheiben', 'stängel', 'blatt', 'blätter', 'packung', 'päckchen', 'würfel']
-const COUNTABLE_NAMES = ['ei', 'eier', 'zwiebel', 'knoblauchzehe', 'zitrone', 'limette']
-
-function isCountable(ing) {
-  const unit = (ing.unit ?? '').toLowerCase().trim()
-  const name = (ing.name ?? '').toLowerCase()
-  if (COUNTABLE_UNITS.includes(unit)) return true
-  if (!unit && COUNTABLE_NAMES.some((n) => name.startsWith(n))) return true
-  return false
-}
-
-function formatNumber(n) {
-  if (Number.isInteger(n)) return String(n)
-  return String(Math.round(n * 100) / 100).replace('.', ',')
-}
-
-// Intelligente Rundung der skalierten Menge
-export function formatScaled(ing, factor) {
-  if (ing.amount === null || ing.amount === undefined) return ''
-  if (!ing.is_scalable) return formatNumber(Number(ing.amount))
-
-  const n = Number(ing.amount) * factor
-  if (n <= 0) return ''
-
-  if (isCountable(ing)) {
-    const nearest = Math.round(n)
-    if (Math.abs(n - nearest) <= 0.15 && nearest >= 1) return String(nearest)
-    const lo = Math.max(1, Math.floor(n))
-    const hi = Math.ceil(n)
-    return lo === hi ? String(lo) : `${lo}–${hi}`
-  }
-
-  if (n >= 100) return String(Math.round(n))
-  if (n >= 10) return formatNumber(Math.round(n * 2) / 2)
-  if (n >= 1) return formatNumber(Math.round(n * 4) / 4)
-  return formatNumber(Math.round(n * 100) / 100)
-}
+// Mengenformatierung zentral in lib/amounts.js (überall dieselben Zahlen)
+import { formatScaled, formatIngredientAmount } from '../lib/amounts.js'
 
 function formatDate(d) {
   if (!d) return ''
@@ -175,7 +140,7 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = f
     if (recipe.description) lines.push(recipe.description)
     lines.push('', `Zutaten (für ${servings} ${servings === 1 ? 'Portion' : 'Portionen'}):`)
     for (const ing of ingredients) {
-      lines.push('• ' + [formatScaled(ing, servings / (recipe.base_servings || 4)), ing.unit, ing.name].filter(Boolean).join(' '))
+      lines.push('• ' + [formatIngredientAmount(ing, servings / (recipe.base_servings || 4)), ing.name].filter(Boolean).join(' '))
     }
     const stepList = recipe.steps ?? []
     if (stepList.length) {
@@ -232,7 +197,7 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = f
   const isScaled = servings !== base
   const cooked = recipe.status === 'gekocht'
   const steps = recipe.steps ?? []
-  const meta = [recipe.category, recipe.cuisine, time > 0 ? `${time} Min` : null, recipe.rating ? `★ ${recipe.rating},0` : null]
+  const meta = [recipe.category, recipe.cuisine, time > 0 ? `${time} Min` : 'Zeit n. a.', recipe.rating ? `★ ${recipe.rating},0` : null]
     .filter(Boolean).join(' · ')
 
   const cardCls = 'bg-card rounded-[16px] shadow-card'
@@ -244,7 +209,7 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = f
           recipe={recipe}
           ingredients={ingredients}
           servings={servings}
-          formatAmount={(ing) => formatScaled(ing, factor)}
+          formatAmount={(ing) => formatIngredientAmount(ing, factor)}
           onMarkCooked={markCooked}
           onClose={() => setCooking(false)}
         />
@@ -263,7 +228,7 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = f
             />
           </div>
         ) : recipe.image_url ? (
-          <img src={recipe.image_url} alt="" className="w-full h-full object-cover" />
+          <img src={recipe.image_url} alt={recipe.title} onError={onImgError} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full grid place-content-center bg-fill text-ink-3">
             <Icon name="utensils" size={34} strokeWidth={1.5} />
@@ -367,7 +332,7 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = f
                           : 'text-ink-3'
                     }`}
                   >
-                    {[formatScaled(ing, factor), ing.unit].filter(Boolean).join(' ')}
+                    {formatIngredientAmount(ing, factor)}
                   </span>
                   {i < ingredients.length - 1 && (
                     <span className="absolute bottom-0 left-4 right-0 pointer-events-none" style={{ height: 0.5, background: 'var(--color-separator)' }} />

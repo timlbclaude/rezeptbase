@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { applyTheme, getTheme } from '../lib/theme.js'
 import { buildHaystack, matchesQuery } from '../lib/search.js'
+import { onImgError } from '../lib/imageFallback.js'
 import ImportPage from './ImportPage.jsx'
 import RecipeDetail from './RecipeDetail.jsx'
 import ShoppingList from './ShoppingList.jsx'
@@ -12,6 +13,38 @@ const CHIPS = [
   { key: 'zum_ausprobieren', label: 'Ausprobieren' },
   { key: 'gekocht', label: 'Gekocht' },
 ]
+
+/* ---- Hash-Routing (Deep Links + Browser-Zurück) ----
+   #/rezept/<id>  Detailansicht     #/import  Import
+   #/einkauf      Einkaufsliste     #/?q=…&status=…&kat=…&sort=…&fav=1  Liste */
+function parseHash() {
+  const h = window.location.hash.replace(/^#\/?/, '')
+  const [path, queryStr] = h.split('?')
+  const params = new URLSearchParams(queryStr ?? '')
+  if (path.startsWith('rezept/')) return { screen: { name: 'detail', id: path.slice(7) } }
+  if (path === 'import') return { screen: { name: 'import' } }
+  if (path === 'einkauf') return { tab: 'einkauf' }
+  return {
+    list: {
+      q: params.get('q') ?? '',
+      filter: params.get('status') ?? 'alle',
+      cat: params.get('kat'),
+      sort: params.get('sort') ?? 'neueste',
+      fav: params.get('fav') === '1',
+    },
+  }
+}
+
+function buildListHash(q, filter, catFilter, sortBy, onlyFavs) {
+  const params = new URLSearchParams()
+  if (q.trim()) params.set('q', q.trim())
+  if (filter !== 'alle') params.set('status', filter)
+  if (catFilter) params.set('kat', catFilter)
+  if (sortBy !== 'neueste') params.set('sort', sortBy)
+  if (onlyFavs) params.set('fav', '1')
+  const s = params.toString()
+  return s ? `#/?${s}` : '#/'
+}
 
 const SORTS = [
   { key: 'neueste', label: 'Neueste zuerst' },
@@ -32,7 +65,7 @@ function metaLine(r) {
 
 function Thumb({ src, size = 52, radius = 10 }) {
   return src ? (
-    <img src={src} alt="" loading="lazy" className="object-cover shrink-0" style={{ width: size, height: size, borderRadius: radius }} />
+    <img src={src} alt="" loading="lazy" onError={onImgError} className="object-cover shrink-0" style={{ width: size, height: size, borderRadius: radius }} />
   ) : (
     <span className="grid place-content-center bg-fill text-ink-3 shrink-0" style={{ width: size, height: size, borderRadius: radius }}>
       <Icon name="utensils" size={size * 0.42} strokeWidth={1.8} />
@@ -69,7 +102,7 @@ function GridCard({ r, onOpen }) {
     <button onClick={onOpen} className="text-left bg-card rounded-[18px] shadow-card p-1.5 pb-3 active:scale-[0.98] transition">
       <div className="relative">
         {r.image_url ? (
-          <img src={r.image_url} alt="" loading="lazy" className="w-full object-cover rounded-[13px]" style={{ height: 106 }} />
+          <img src={r.image_url} alt="" loading="lazy" onError={onImgError} className="w-full object-cover rounded-[13px]" style={{ height: 106 }} />
         ) : (
           <div className="w-full grid place-content-center bg-fill text-ink-3 rounded-[13px]" style={{ height: 106 }}>
             <Icon name="utensils" size={26} strokeWidth={1.6} />
@@ -142,18 +175,55 @@ function RowSkeleton() {
 }
 
 export default function Recipes({ session, readOnly = false }) {
-  const [tab, setTab] = useState('rezepte')
-  const [screen, setScreen] = useState(null) // null | {name:'detail',id} | {name:'import'}
+  // Startzustand aus der URL (Deep Link), z. B. #/rezept/<id>
+  const initial = parseHash()
+  const [tab, setTab] = useState(initial.tab ?? 'rezepte')
+  const [screen, setScreen] = useState(initial.screen ?? null) // null | {name:'detail',id} | {name:'import'}
   const [profileOpen, setProfileOpen] = useState(false)
   const [recipes, setRecipes] = useState([])
   const [loading, setLoading] = useState(true)
-  const [q, setQ] = useState('')
-  const [filter, setFilter] = useState('alle')
-  const [onlyFavs, setOnlyFavs] = useState(false)
-  const [sortBy, setSortBy] = useState('neueste')
-  const [catFilter, setCatFilter] = useState(null)
+  const [q, setQ] = useState(initial.list?.q ?? '')
+  const [filter, setFilter] = useState(initial.list?.filter ?? 'alle')
+  const [onlyFavs, setOnlyFavs] = useState(initial.list?.fav ?? false)
+  const [sortBy, setSortBy] = useState(initial.list?.sort ?? 'neueste')
+  const [catFilter, setCatFilter] = useState(initial.list?.cat ?? null)
   const [filterOpen, setFilterOpen] = useState(false)
   const [theme, setTheme] = useState(getTheme)
+
+  // Zustand → URL. Screen-Wechsel erzeugen History-Einträge (Browser-Zurück
+  // führt zur Liste zurück), Such-/Filteränderungen ersetzen nur die URL.
+  useEffect(() => {
+    const target = screen?.name === 'detail'
+      ? `#/rezept/${screen.id}`
+      : screen?.name === 'import'
+        ? '#/import'
+        : tab === 'einkauf'
+          ? '#/einkauf'
+          : buildListHash(q, filter, catFilter, sortBy, onlyFavs)
+    if (window.location.hash === target) return
+    const isScreenChange = target.startsWith('#/rezept/') || target === '#/import' || target === '#/einkauf'
+      || window.location.hash.startsWith('#/rezept/') || window.location.hash === '#/import' || window.location.hash === '#/einkauf'
+    if (isScreenChange) window.history.pushState(null, '', target)
+    else window.history.replaceState(null, '', target)
+  }, [screen, tab, q, filter, catFilter, sortBy, onlyFavs])
+
+  // Browser-Zurück/Vorwärts → Zustand aus der URL übernehmen
+  useEffect(() => {
+    function onPop() {
+      const p = parseHash()
+      setScreen(p.screen ?? null)
+      setTab(p.tab ?? 'rezepte')
+      if (p.list) {
+        setQ(p.list.q)
+        setFilter(p.list.filter)
+        setCatFilter(p.list.cat)
+        setSortBy(p.list.sort)
+        setOnlyFavs(p.list.fav)
+      }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   const loadRecipes = useCallback(() => {
     supabase
@@ -199,9 +269,22 @@ export default function Recipes({ session, readOnly = false }) {
     [recipes],
   )
 
+  // Screens, die aus der App heraus geöffnet wurden, schließen wir über die
+  // Browser-History (echtes Zurück). Direkt geöffnete Deep Links nicht –
+  // sonst würde der Nutzer aus der App fallen.
+  const openedInApp = useRef(false)
+  const openScreen = (s) => {
+    openedInApp.current = true
+    setScreen(s)
+  }
   const backToList = () => {
     loadRecipes()
-    setScreen(null)
+    if (openedInApp.current) {
+      openedInApp.current = false
+      window.history.back()
+    } else {
+      setScreen(null)
+    }
   }
 
   const isDefaultView = filter === 'alle' && !q.trim() && !onlyFavs && !filterActive
@@ -318,7 +401,7 @@ export default function Recipes({ session, readOnly = false }) {
                   <SectionLabel>Zum Ausprobieren · {tryList.length}</SectionLabel>
                   <div className="grid grid-cols-2 gap-3">
                     {tryList.map((r) => (
-                      <GridCard key={r.id} r={r} onOpen={() => setScreen({ name: 'detail', id: r.id })} />
+                      <GridCard key={r.id} r={r} onOpen={() => openScreen({ name: 'detail', id: r.id })} />
                     ))}
                   </div>
                 </>
@@ -326,7 +409,7 @@ export default function Recipes({ session, readOnly = false }) {
               <SectionLabel>Alle Rezepte</SectionLabel>
               <div className="bg-card rounded-[16px] shadow-card overflow-hidden text-ink-4">
                 {recipes.map((r, i) => (
-                  <RecipeRow key={r.id} r={r} last={i === recipes.length - 1} onOpen={() => setScreen({ name: 'detail', id: r.id })} />
+                  <RecipeRow key={r.id} r={r} last={i === recipes.length - 1} onOpen={() => openScreen({ name: 'detail', id: r.id })} />
                 ))}
               </div>
             </>
@@ -335,7 +418,7 @@ export default function Recipes({ session, readOnly = false }) {
               <SectionLabel>Ergebnisse · {filtered.length}</SectionLabel>
               <div className="bg-card rounded-[16px] shadow-card overflow-hidden text-ink-4">
                 {filtered.map((r, i) => (
-                  <RecipeRow key={r.id} r={r} last={i === filtered.length - 1} onOpen={() => setScreen({ name: 'detail', id: r.id })} />
+                  <RecipeRow key={r.id} r={r} last={i === filtered.length - 1} onOpen={() => openScreen({ name: 'detail', id: r.id })} />
                 ))}
               </div>
             </>
@@ -348,7 +431,7 @@ export default function Recipes({ session, readOnly = false }) {
       <TabBar
         tab={tab}
         onTab={(t) => {
-          if (t === 'import') setScreen({ name: 'import' })
+          if (t === 'import') openScreen({ name: 'import' })
           else setTab(t)
         }}
       />

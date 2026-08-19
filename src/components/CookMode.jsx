@@ -1,6 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { normalize } from '../lib/search.js'
 import Icon from './Icon.jsx'
+
+// Ordnet die Text-Zutatenhinweise eines Schritts den echten Zutaten zu,
+// damit im Kochmodus dieselben (skalierten, formatierten) Mengen stehen
+// wie in der Zutatenliste – statt der rohen Original-Textmengen.
+function stepIngredients(step, ingredients) {
+  if (!step?.zutaten) return null
+  const segs = String(step.zutaten).split(/[,;]|\sund\s/).map((s) => s.trim()).filter(Boolean)
+  return segs.map((seg) => {
+    const nseg = normalize(seg)
+    const core = nseg.replace(/^[\d.,\s½¼¾/–-]+[a-z.]{0,12}\s*/, '')
+    const match = ingredients.find((ing) => {
+      const n = normalize(ing.name ?? '')
+      return n.length >= 3 && (nseg.includes(n) || (core.length >= 3 && n.includes(core)))
+    })
+    return { seg, match }
+  })
+}
 
 /* Kochmodus „2a Nativ": Vollbild weiß, Schritt für Schritt,
    Schritt-Timer, Zutaten-Bottom-Sheet, Wake Lock. */
@@ -194,13 +212,20 @@ export default function CookMode({ recipe, ingredients, servings, formatAmount, 
               </div>
             )}
 
-            {/* Zutaten in diesem Schritt (optionales Feld) */}
+            {/* Zutaten in diesem Schritt: mit den echten Zutaten verknüpft,
+                Mengen skaliert und einheitlich formatiert */}
             {step?.zutaten && (
               <div className="rounded-[16px] bg-bg px-4 py-3.5">
-                <p className="text-[12px] font-semibold uppercase text-ink-3 mb-1" style={{ letterSpacing: '0.03em' }}>
+                <p className="text-[12px] font-semibold uppercase text-ink-3 mb-1.5" style={{ letterSpacing: '0.03em' }}>
                   In diesem Schritt
                 </p>
-                <p className="text-[14.5px] text-ink-2">{step.zutaten}</p>
+                {stepIngredients(step, ingredients).map(({ seg, match }, i) => (
+                  <p key={i} className="text-[14.5px] text-ink-2 py-0.5">
+                    {match
+                      ? [match.name, formatAmount(match)].filter(Boolean).join(' — ')
+                      : seg}
+                  </p>
+                ))}
               </div>
             )}
           </div>
@@ -244,7 +269,7 @@ export default function CookMode({ recipe, ingredients, servings, formatAmount, 
               <div key={ing.id} className="relative flex items-center justify-between gap-3 py-2.5">
                 <span className="text-[15.5px] text-ink">{ing.name}</span>
                 <span className="text-[15px] text-ink-3 shrink-0">
-                  {[formatAmount(ing), ing.unit].filter(Boolean).join(' ')}
+                  {formatAmount(ing)}
                 </span>
                 {i < ingredients.length - 1 && (
                   <span className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 0.5, background: 'var(--color-separator)' }} />
