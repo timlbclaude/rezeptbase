@@ -41,6 +41,8 @@ const WORDS = {
     'schokolade', 'kakao', 'nuss', 'nüsse', 'nuesse', 'mandel', 'erdnuss', 'sesam', 'couscous',
     'bulgur', 'quinoa', 'panko', 'paniermehl', 'ketchup', 'senf', 'mayonnaise', 'sojasoße', 'sojasosse',
     'sojasauce', 'gochujang', 'sriracha', 'currypaste', 'marmelade', 'sirup', 'datteln',
+    'kartoffelstärke', 'kartoffelstaerke', 'maisstärke', 'maisstaerke', 'speisestärke', 'speisestaerke',
+    'tomatensoße', 'tomatensosse', 'tomatensauce', 'chilipaste', 'chilisauce', 'chilisoße', 'chilisosse',
   ],
   gewuerze: [
     'salz', 'pfeffer', 'paprikapulver', 'curry', 'kreuzkümmel', 'kreuzkuemmel', 'kumin',
@@ -51,15 +53,25 @@ const WORDS = {
   getraenke: ['wasser', 'saft', 'wein', 'bier', 'reiswein', 'mirin', 'limonade', 'cola'],
 }
 
-/** Liefert den Gruppen-Key für einen Artikelnamen. */
+/** Liefert den Gruppen-Key für einen Artikelnamen.
+    Bei mehreren Treffern gewinnt das längste (spezifischste) Stichwort –
+    so landet „Kartoffelstärke" im Vorrat und nicht bei den Kartoffeln. */
 export function groupForItem(name) {
   const n = String(name ?? '').toLowerCase()
   if (!n.trim()) return 'sonstiges'
+  let best = null
+  let bestLen = 0
   for (const g of SHOP_GROUPS) {
     const words = WORDS[g.key]
-    if (words && words.some((w) => n.includes(w))) return g.key
+    if (!words) continue
+    for (const w of words) {
+      if (w.length > bestLen && n.includes(w)) {
+        best = g.key
+        bestLen = w.length
+      }
+    }
   }
-  return 'sonstiges'
+  return best ?? 'sonstiges'
 }
 
 /** Gruppiert Einkaufszeilen zu [{key,label,items}] in Laden-Reihenfolge. */

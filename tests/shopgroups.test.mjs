@@ -30,6 +30,15 @@ test('Gewürze & Öle', () => {
   assert.equal(groupForItem('Schwarzer Pfeffer'), 'gewuerze')
 })
 
+test('Längster Treffer gewinnt (Stärke, Ketchup, Chilipaste → Vorrat)', () => {
+  assert.equal(groupForItem('Kartoffelstärke (oder Maisstärke)'), 'vorrat')
+  assert.equal(groupForItem('Tomatensoße (Ketchup)'), 'vorrat')
+  assert.equal(groupForItem('Gochujang (koreanische Chilipaste)'), 'vorrat')
+  // aber echte Kartoffeln/Tomaten bleiben beim Gemüse
+  assert.equal(groupForItem('Kartoffeln, festkochend'), 'obst_gemuese')
+  assert.equal(groupForItem('Tomaten'), 'obst_gemuese')
+})
+
 test('Unbekanntes → Sonstiges', () => {
   assert.equal(groupForItem('Bambusdämpfer'), 'sonstiges')
   assert.equal(groupForItem(''), 'sonstiges')
