@@ -3,6 +3,10 @@ import { supabase } from '../lib/supabase.js'
 import { applyTheme, getTheme } from '../lib/theme.js'
 import { buildHaystack, matchesQuery } from '../lib/search.js'
 import { onImgError } from '../lib/imageFallback.js'
+import { parseHash as parseHashPure, buildListHash } from '../lib/route.js'
+import { runWrite } from '../lib/mutate.js'
+import { notify } from '../lib/notify.js'
+import { READ_ONLY_MSG } from '../lib/roles.js'
 import ImportPage from './ImportPage.jsx'
 import RecipeDetail from './RecipeDetail.jsx'
 import ShoppingList from './ShoppingList.jsx'
@@ -14,37 +18,8 @@ const CHIPS = [
   { key: 'gekocht', label: 'Gekocht' },
 ]
 
-/* ---- Hash-Routing (Deep Links + Browser-Zurück) ----
-   #/rezept/<id>  Detailansicht     #/import  Import
-   #/einkauf      Einkaufsliste     #/?q=…&status=…&kat=…&sort=…&fav=1  Liste */
-function parseHash() {
-  const h = window.location.hash.replace(/^#\/?/, '')
-  const [path, queryStr] = h.split('?')
-  const params = new URLSearchParams(queryStr ?? '')
-  if (path.startsWith('rezept/')) return { screen: { name: 'detail', id: path.slice(7) } }
-  if (path === 'import') return { screen: { name: 'import' } }
-  if (path === 'einkauf') return { tab: 'einkauf' }
-  return {
-    list: {
-      q: params.get('q') ?? '',
-      filter: params.get('status') ?? 'alle',
-      cat: params.get('kat'),
-      sort: params.get('sort') ?? 'neueste',
-      fav: params.get('fav') === '1',
-    },
-  }
-}
-
-function buildListHash(q, filter, catFilter, sortBy, onlyFavs) {
-  const params = new URLSearchParams()
-  if (q.trim()) params.set('q', q.trim())
-  if (filter !== 'alle') params.set('status', filter)
-  if (catFilter) params.set('kat', catFilter)
-  if (sortBy !== 'neueste') params.set('sort', sortBy)
-  if (onlyFavs) params.set('fav', '1')
-  const s = params.toString()
-  return s ? `#/?${s}` : '#/'
-}
+// Hash-Routing: reine Funktionen liegen in lib/route.js (dort auch getestet)
+const parseHash = () => parseHashPure(window.location.hash)
 
 const SORTS = [
   { key: 'neueste', label: 'Neueste zuerst' },
@@ -138,6 +113,7 @@ function TabBar({ tab, onTab }) {
   ]
   return (
     <nav
+      aria-label="Hauptnavigation"
       className="fixed bottom-0 inset-x-0 z-20 flex justify-center gap-10"
       style={{
         background: 'var(--color-bar)',
@@ -151,8 +127,9 @@ function TabBar({ tab, onTab }) {
         <button
           key={it.key}
           onClick={() => onTab(it.key)}
+          aria-current={tab === it.key ? 'page' : undefined}
           className="flex flex-col items-center gap-0.5 min-w-16"
-          style={{ color: tab === it.key ? 'var(--color-tint)' : 'var(--color-ink-3)' }}
+          style={{ color: tab === it.key ? 'var(--color-tint)' : 'var(--color-ink-3)', minHeight: 44 }}
         >
           <Icon name={it.icon} size={24} strokeWidth={tab === it.key ? 2 : 1.8} />
           <span className="text-[10px] font-semibold">{it.label}</span>
@@ -187,6 +164,10 @@ export default function Recipes({ session, readOnly = false }) {
   const [onlyFavs, setOnlyFavs] = useState(initial.list?.fav ?? false)
   const [sortBy, setSortBy] = useState(initial.list?.sort ?? 'neueste')
   const [catFilter, setCatFilter] = useState(initial.list?.cat ?? null)
+  const [collFilter, setCollFilter] = useState(initial.list?.collection ?? null)
+  const [collections, setCollections] = useState([])
+  const [collLinks, setCollLinks] = useState([]) // {recipe_id, collection_id}
+  const [confirmDeleteColl, setConfirmDeleteColl] = useState(false)
   const [filterOpen, setFilterOpen] = useState(false)
   const [theme, setTheme] = useState(getTheme)
 
@@ -199,13 +180,13 @@ export default function Recipes({ session, readOnly = false }) {
         ? '#/import'
         : tab === 'einkauf'
           ? '#/einkauf'
-          : buildListHash(q, filter, catFilter, sortBy, onlyFavs)
+          : buildListHash(q, filter, catFilter, sortBy, onlyFavs, collFilter)
     if (window.location.hash === target) return
     const isScreenChange = target.startsWith('#/rezept/') || target === '#/import' || target === '#/einkauf'
       || window.location.hash.startsWith('#/rezept/') || window.location.hash === '#/import' || window.location.hash === '#/einkauf'
     if (isScreenChange) window.history.pushState(null, '', target)
     else window.history.replaceState(null, '', target)
-  }, [screen, tab, q, filter, catFilter, sortBy, onlyFavs])
+  }, [screen, tab, q, filter, catFilter, sortBy, onlyFavs, collFilter])
 
   // Browser-Zurück/Vorwärts → Zustand aus der URL übernehmen
   useEffect(() => {
@@ -219,6 +200,7 @@ export default function Recipes({ session, readOnly = false }) {
         setCatFilter(p.list.cat)
         setSortBy(p.list.sort)
         setOnlyFavs(p.list.fav)
+        setCollFilter(p.list.collection)
       }
     }
     window.addEventListener('popstate', onPop)
@@ -234,6 +216,11 @@ export default function Recipes({ session, readOnly = false }) {
         setRecipes(data ?? [])
         setLoading(false)
       })
+    // Sammlungen + Zuordnungen (für den Sammlungs-Filter)
+    supabase.from('collections').select('id, name').order('name')
+      .then(({ data }) => setCollections(data ?? []))
+    supabase.from('recipe_collections').select('recipe_id, collection_id')
+      .then(({ data }) => setCollLinks(data ?? []))
   }, [])
 
   useEffect(() => {
@@ -245,6 +232,10 @@ export default function Recipes({ session, readOnly = false }) {
     if (filter !== 'alle') list = list.filter((r) => (r.status ?? 'zum_ausprobieren') === filter)
     if (onlyFavs) list = list.filter((r) => r.is_favorite)
     if (catFilter) list = list.filter((r) => r.category === catFilter)
+    if (collFilter) {
+      const inColl = new Set(collLinks.filter((l) => l.collection_id === collFilter).map((l) => l.recipe_id))
+      list = list.filter((r) => inColl.has(r.id))
+    }
     const query = q.trim()
     if (query) {
       list = list.filter((r) => matchesQuery(r.__hay ?? (r.__hay = buildHaystack(r)), query))
@@ -256,13 +247,14 @@ export default function Recipes({ session, readOnly = false }) {
       if (sortBy === 'titel') list.sort((a, b) => a.title.localeCompare(b.title, 'de'))
     }
     return list
-  }, [recipes, filter, onlyFavs, catFilter, sortBy, q])
+  }, [recipes, filter, onlyFavs, catFilter, sortBy, q, collFilter, collLinks])
 
   const categories = useMemo(
     () => [...new Set(recipes.map((r) => r.category).filter(Boolean))],
     [recipes],
   )
-  const filterActive = catFilter !== null || sortBy !== 'neueste'
+  const filterCount = (catFilter !== null ? 1 : 0) + (sortBy !== 'neueste' ? 1 : 0) + (collFilter ? 1 : 0)
+  const filterActive = filterCount > 0
 
   const tryList = useMemo(
     () => recipes.filter((r) => (r.status ?? 'zum_ausprobieren') === 'zum_ausprobieren'),
@@ -288,6 +280,26 @@ export default function Recipes({ session, readOnly = false }) {
   }
 
   const isDefaultView = filter === 'alle' && !q.trim() && !onlyFavs && !filterActive
+
+  function resetAllFilters() {
+    setQ('')
+    setFilter('alle')
+    setOnlyFavs(false)
+    setCatFilter(null)
+    setCollFilter(null)
+    setSortBy('neueste')
+  }
+
+  async function deleteCollection(id) {
+    if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
+    const { ok } = await runWrite(supabase.from('collections').delete().eq('id', id))
+    if (ok) {
+      setCollections((cs) => cs.filter((c) => c.id !== id))
+      setCollLinks((ls) => ls.filter((l) => l.collection_id !== id))
+      if (collFilter === id) setCollFilter(null)
+    }
+    setConfirmDeleteColl(false)
+  }
 
   // ---- Push-Screens (ohne Tab-Bar) ----
   if (screen?.name === 'import') {
@@ -317,7 +329,7 @@ export default function Recipes({ session, readOnly = false }) {
             <h1 className="text-[34px] font-bold text-ink" style={{ letterSpacing: '0.3px' }}>Rezepte</h1>
             <button
               onClick={() => setProfileOpen(true)}
-              className="grid place-content-center w-[34px] h-[34px] rounded-full bg-fill text-tint active:scale-95 transition"
+              className="grid place-content-center w-[44px] h-[44px] rounded-full bg-fill text-tint active:scale-95 transition"
               aria-label="Profil"
             >
               <Icon name="user" size={17} strokeWidth={2} />
@@ -341,12 +353,21 @@ export default function Recipes({ session, readOnly = false }) {
             </div>
             <button
               onClick={() => setFilterOpen(true)}
-              className={`relative shrink-0 grid place-content-center w-[42px] rounded-[12px] transition ${
+              className={`relative shrink-0 grid place-content-center w-[44px] rounded-[12px] transition ${
                 filterActive ? 'bg-tint text-white' : 'bg-fill text-ink-2'
               }`}
-              aria-label="Filter und Sortierung"
+              aria-label={filterCount > 0 ? `Filter und Sortierung, ${filterCount} aktiv` : 'Filter und Sortierung'}
             >
               <Icon name="sliders" size={17} strokeWidth={2} />
+              {filterCount > 0 && (
+                <span
+                  className="absolute -top-1.5 -right-1.5 grid place-content-center rounded-full bg-love text-white text-[10.5px] font-bold"
+                  style={{ width: 18, height: 18, boxShadow: '0 0 0 2px var(--color-bg)' }}
+                  aria-hidden="true"
+                >
+                  {filterCount}
+                </span>
+              )}
             </button>
           </div>
 
@@ -356,43 +377,65 @@ export default function Recipes({ session, readOnly = false }) {
               <button
                 key={c.key}
                 onClick={() => setFilter(c.key)}
+                aria-pressed={filter === c.key}
                 className={`shrink-0 rounded-full text-[14px] transition ${
                   filter === c.key ? 'bg-tint text-white font-semibold' : 'bg-card text-ink-2 font-medium shadow-card'
                 }`}
-                style={{ padding: '7px 15px' }}
+                style={{ padding: '7px 15px', minHeight: 36 }}
               >
                 {c.label}
               </button>
             ))}
             <button
               onClick={() => setOnlyFavs(!onlyFavs)}
+              aria-pressed={onlyFavs}
               className={`shrink-0 rounded-full transition grid place-content-center ${
                 onlyFavs ? 'bg-tint text-white' : 'bg-card text-love shadow-card'
               }`}
-              style={{ padding: '7px 13px' }}
+              style={{ padding: '7px 13px', minHeight: 36 }}
               aria-label="Nur Favoriten"
             >
               <Icon name="heart" size={15} filled={onlyFavs} strokeWidth={2} />
             </button>
           </div>
 
+          {/* Ergebnisanzahl für Screenreader (Live-Region) */}
+          <p className="sr-only" aria-live="polite" role="status">
+            {loading ? 'Rezepte werden geladen' : `${filtered.length} ${filtered.length === 1 ? 'Rezept' : 'Rezepte'} angezeigt`}
+          </p>
+
           {loading ? (
             <div className="bg-card rounded-[16px] shadow-card overflow-hidden">
               <RowSkeleton /><RowSkeleton /><RowSkeleton /><RowSkeleton />
             </div>
           ) : filtered.length === 0 ? (
+            /* Drei unterscheidbare Leerzustände: keine Rezepte / Suche leer / Filter leer */
             <div className="text-center py-14">
               <div className="inline-grid place-content-center w-14 h-14 rounded-[18px] bg-fill text-ink-3 mb-4">
-                <Icon name={recipes.length === 0 ? 'chefHat' : 'search'} size={26} strokeWidth={1.6} />
+                <Icon name={recipes.length === 0 ? 'chefHat' : q.trim() ? 'search' : 'sliders'} size={26} strokeWidth={1.6} />
               </div>
               <h2 className="text-[16px] font-semibold text-ink mb-1">
-                {recipes.length === 0 ? 'Noch keine Rezepte' : 'Nichts gefunden'}
+                {recipes.length === 0
+                  ? 'Noch keine Rezepte'
+                  : q.trim()
+                    ? `Nichts zu „${q.trim()}“ gefunden`
+                    : 'Keine Treffer mit diesen Filtern'}
               </h2>
               <p className="text-[13.5px] text-ink-3 max-w-xs mx-auto">
                 {recipes.length === 0
                   ? 'Importiere dein erstes Rezept über den Import-Tab – einfach einen Link einfügen.'
-                  : 'Kein Rezept passt zu Suche oder Filter.'}
+                  : q.trim()
+                    ? 'Versuch einen anderen Begriff – die Suche kennt auch Oberbegriffe wie „Pasta“ oder „Dessert“.'
+                    : 'Die aktive Filter-Kombination passt auf kein Rezept.'}
               </p>
+              {recipes.length > 0 && (
+                <button
+                  onClick={resetAllFilters}
+                  className="mt-4 rounded-full bg-tint px-5 py-2.5 text-[14px] font-semibold text-white active:bg-tint-dark transition"
+                >
+                  {q.trim() ? 'Suche und Filter zurücksetzen' : 'Filter zurücksetzen'}
+                </button>
+              )}
             </div>
           ) : isDefaultView ? (
             <>
@@ -451,10 +494,11 @@ export default function Recipes({ session, readOnly = false }) {
             <div className="flex flex-wrap gap-2 mb-5">
               <button
                 onClick={() => setCatFilter(null)}
+                aria-pressed={catFilter === null}
                 className={`rounded-full text-[13.5px] transition ${
                   catFilter === null ? 'bg-tint text-white font-semibold' : 'bg-fill text-ink-2 font-medium'
                 }`}
-                style={{ padding: '6px 13px' }}
+                style={{ padding: '6px 13px', minHeight: 34 }}
               >
                 Alle
               </button>
@@ -462,15 +506,52 @@ export default function Recipes({ session, readOnly = false }) {
                 <button
                   key={c}
                   onClick={() => setCatFilter(catFilter === c ? null : c)}
+                  aria-pressed={catFilter === c}
                   className={`rounded-full text-[13.5px] transition ${
                     catFilter === c ? 'bg-tint text-white font-semibold' : 'bg-fill text-ink-2 font-medium'
                   }`}
-                  style={{ padding: '6px 13px' }}
+                  style={{ padding: '6px 13px', minHeight: 34 }}
                 >
                   {c}
                 </button>
               ))}
             </div>
+
+            {collections.length > 0 && (
+              <>
+                <p className="text-[12px] font-semibold uppercase text-ink-3 mb-2" style={{ letterSpacing: '0.03em' }}>Sammlungen</p>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {collections.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => { setCollFilter(collFilter === c.id ? null : c.id); setConfirmDeleteColl(false) }}
+                      aria-pressed={collFilter === c.id}
+                      className={`rounded-full text-[13.5px] transition ${
+                        collFilter === c.id ? 'bg-tint text-white font-semibold' : 'bg-fill text-ink-2 font-medium'
+                      }`}
+                      style={{ padding: '6px 13px', minHeight: 34 }}
+                    >
+                      {c.name} · {collLinks.filter((l) => l.collection_id === c.id).length}
+                    </button>
+                  ))}
+                </div>
+                <div className="mb-5" style={{ minHeight: 20 }}>
+                  {collFilter && !readOnly && (
+                    confirmDeleteColl ? (
+                      <span className="text-[13px] text-ink-2">
+                        Sammlung „{collections.find((c) => c.id === collFilter)?.name}“ löschen? (Rezepte bleiben erhalten){' '}
+                        <button onClick={() => deleteCollection(collFilter)} className="font-semibold text-love">Ja</button>{' '}
+                        <button onClick={() => setConfirmDeleteColl(false)} className="text-ink-3">Nein</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteColl(true)} className="text-[13px] text-ink-3">
+                        Ausgewählte Sammlung löschen …
+                      </button>
+                    )
+                  )}
+                </div>
+              </>
+            )}
 
             <p className="text-[12px] font-semibold uppercase text-ink-3 mb-1" style={{ letterSpacing: '0.03em' }}>Sortierung</p>
             <div className="mb-5">
@@ -478,6 +559,7 @@ export default function Recipes({ session, readOnly = false }) {
                 <button
                   key={s.key}
                   onClick={() => setSortBy(s.key)}
+                  aria-pressed={sortBy === s.key}
                   className="relative w-full flex items-center justify-between py-3 text-left"
                 >
                   <span className={`text-[15.5px] ${sortBy === s.key ? 'font-semibold text-ink' : 'text-ink-2'}`}>
@@ -495,7 +577,7 @@ export default function Recipes({ session, readOnly = false }) {
 
             <div className="flex gap-3">
               <button
-                onClick={() => { setCatFilter(null); setSortBy('neueste') }}
+                onClick={() => { setCatFilter(null); setSortBy('neueste'); setCollFilter(null); setConfirmDeleteColl(false) }}
                 className="flex-1 h-[48px] rounded-[14px] bg-fill text-[15.5px] font-semibold text-ink-2 active:opacity-80 transition"
               >
                 Zurücksetzen

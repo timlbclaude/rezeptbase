@@ -1,32 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { normalize } from '../lib/search.js'
+import { stepIngredients } from '../lib/stepMatch.js'
 import Icon from './Icon.jsx'
 
-// Ordnet die Text-Zutatenhinweise eines Schritts den echten Zutaten zu,
-// damit im Kochmodus dieselben (skalierten, formatierten) Mengen stehen
-// wie in der Zutatenliste – statt der rohen Original-Textmengen.
-function stepIngredients(step, ingredients) {
-  if (!step?.zutaten) return null
-  // Nicht am Dezimalkomma splitten („0,5 TL“, „1,5 kg“) und
-  // rein numerische Rest-Segmente aussortieren.
-  const segs = String(step.zutaten)
-    .split(/;|,(?!\d)|\sund\s/)
-    .map((s) => s.trim())
-    .filter((s) => s && /[a-zäöüA-ZÄÖÜ]/.test(s))
-  return segs.map((seg) => {
-    const nseg = normalize(seg)
-    const core = nseg.replace(/^[\d.,\s½¼¾/–-]+[a-z.]{0,12}\s*/, '')
-    const match = ingredients.find((ing) => {
-      const n = normalize(ing.name ?? '')
-      return n.length >= 3 && (nseg.includes(n) || (core.length >= 3 && n.includes(core)))
-    })
-    return { seg, match }
-  })
-}
-
 /* Kochmodus „2a Nativ": Vollbild weiß, Schritt für Schritt,
-   Schritt-Timer, Zutaten-Bottom-Sheet, Wake Lock. */
+   mehrere benannte Timer (laufen über Schrittwechsel hinweg weiter),
+   Zutaten-Bottom-Sheet, Wake Lock. */
 
 // Dauer eines Schritts: explizites timer_min-Feld, sonst aus dem Text erkannt.
 function stepDurationSec(step) {
@@ -85,24 +64,46 @@ export default function CookMode({ recipe, ingredients, servings, formatAmount, 
   const step = steps[idx]
   const durationSec = useMemo(() => stepDurationSec(step), [step])
 
-  // Timer-State (pro Schritt zurückgesetzt)
-  const [timerLeft, setTimerLeft] = useState(null)
-  const [timerOn, setTimerOn] = useState(false)
+  // ---- Mehrere benannte Timer, laufen über Schrittwechsel hinweg weiter ----
+  // { id: Schrittindex, label, total, left, running }
+  const [timers, setTimers] = useState([])
+  const anyRunning = timers.some((t) => t.running && t.left > 0)
+
   useEffect(() => {
-    setTimerLeft(durationSec)
-    setTimerOn(false)
-  }, [idx, durationSec])
-  useEffect(() => {
-    if (!timerOn || timerLeft === null) return
-    if (timerLeft <= 0) { setTimerOn(false); return }
-    const t = setInterval(() => {
-      setTimerLeft((s) => {
-        if (s <= 1) { beep(); setTimerOn(false); return 0 }
-        return s - 1
-      })
+    if (!anyRunning) return
+    const iv = setInterval(() => {
+      setTimers((ts) =>
+        ts.map((t) => {
+          if (!t.running || t.left <= 0) return t
+          if (t.left <= 1) { beep(); return { ...t, left: 0, running: false, finished: true } }
+          return { ...t, left: t.left - 1 }
+        }),
+      )
     }, 1000)
-    return () => clearInterval(t)
-  }, [timerOn, timerLeft === null]) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => clearInterval(iv)
+  }, [anyRunning])
+
+  const currentTimer = timers.find((t) => t.id === idx)
+
+  function startTimerForStep() {
+    setTimers((ts) => {
+      const existing = ts.find((t) => t.id === idx)
+      if (existing) {
+        return ts.map((t) => (t.id === idx
+          ? (t.left > 0 ? { ...t, running: !t.running } : { ...t, left: t.total, running: true, finished: false })
+          : t))
+      }
+      return [...ts, { id: idx, label: `Schritt ${idx + 1}`, total: durationSec, left: durationSec, running: true }]
+    })
+  }
+
+  function removeTimer(id) {
+    setTimers((ts) => ts.filter((t) => t.id !== id))
+  }
+
+  function toggleTimer(id) {
+    setTimers((ts) => ts.map((t) => (t.id === id && t.left > 0 ? { ...t, running: !t.running } : t)))
+  }
 
   // Wake Lock anfordern und bei Sichtbarkeitswechsel erneuern
   useEffect(() => {
@@ -126,30 +127,56 @@ export default function CookMode({ recipe, ingredients, servings, formatAmount, 
     }
   }, [])
 
-  // Scroll der Seite dahinter sperren
+  // Scroll der Seite dahinter sperren + Seite für Screenreader stummschalten
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
+    const appRoot = document.getElementById('root')
+    if (appRoot) appRoot.setAttribute('aria-hidden', 'true')
+    return () => {
+      document.body.style.overflow = prev
+      if (appRoot) appRoot.removeAttribute('aria-hidden')
+    }
   }, [])
+
+  // Fokus beim Öffnen in den Dialog holen (Escape schließt)
+  const dialogRef = useRef(null)
+  useEffect(() => {
+    dialogRef.current?.focus()
+  }, [])
+
+  const otherTimers = timers.filter((t) => t.id !== idx || done)
 
   // Als Portal direkt an <body>: so bleibt der Vollbild-Kochmodus immer am
   // Bildschirm verankert, egal welche Animationen die Seite dahinter hat.
   return createPortal(
-    <div className="fixed inset-0 z-50 bg-card flex flex-col animate-rise">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Kochmodus: ${recipe.title}`}
+      tabIndex={-1}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
+      className="fixed inset-0 z-50 bg-card flex flex-col animate-rise outline-none"
+    >
       {/* Kopfzeile */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
         <button
           onClick={onClose}
-          className="grid place-content-center w-8 h-8 rounded-full bg-fill text-ink-2 active:scale-95 transition"
-          aria-label="Beenden"
+          className="grid place-content-center rounded-full bg-fill text-ink-2 active:scale-95 transition"
+          style={{ width: 44, height: 44 }}
+          aria-label="Kochmodus beenden"
         >
           <Icon name="x" size={16} strokeWidth={2.2} />
         </button>
-        <span className="text-[15px] font-semibold text-ink">
+        <span className="text-[15px] font-semibold text-ink" aria-live="polite">
           {done ? 'Fertig' : `Schritt ${idx + 1} von ${steps.length}`}
         </span>
-        <button onClick={() => setSheetOpen(true)} className="text-[15px] font-medium text-tint p-1">
+        <button
+          onClick={() => setSheetOpen(true)}
+          className="text-[15px] font-medium text-tint px-2"
+          style={{ minHeight: 44 }}
+        >
           Zutaten
         </button>
       </div>
@@ -163,6 +190,41 @@ export default function CookMode({ recipe, ingredients, servings, formatAmount, 
           />
         </div>
       </div>
+
+      {/* Laufende Timer anderer Schritte: bleiben immer sichtbar */}
+      {otherTimers.length > 0 && (
+        <div className="px-4 pt-3 flex gap-2 flex-wrap" aria-live="polite">
+          {otherTimers.map((t) => (
+            <span
+              key={t.id}
+              className={`inline-flex items-center gap-1.5 rounded-full pl-3 pr-1 py-1 text-[13px] font-semibold ${
+                t.left === 0 ? 'bg-tint text-white' : 'bg-tint-soft text-tint'
+              }`}
+            >
+              <Icon name="clock" size={13} strokeWidth={2.2} />
+              {t.label}: {t.left === 0 ? 'fertig!' : fmtClock(t.left)}
+              {t.left > 0 && (
+                <button
+                  onClick={() => toggleTimer(t.id)}
+                  className="grid place-content-center rounded-full"
+                  style={{ width: 26, height: 26 }}
+                  aria-label={t.running ? `Timer ${t.label} pausieren` : `Timer ${t.label} fortsetzen`}
+                >
+                  <Icon name={t.running ? 'pause' : 'play'} size={12} strokeWidth={2.2} />
+                </button>
+              )}
+              <button
+                onClick={() => removeTimer(t.id)}
+                className="grid place-content-center rounded-full"
+                style={{ width: 26, height: 26 }}
+                aria-label={`Timer ${t.label} entfernen`}
+              >
+                <Icon name="x" size={12} strokeWidth={2.2} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Inhalt */}
       <div className="flex-1 overflow-y-auto px-6 py-7">
@@ -180,7 +242,7 @@ export default function CookMode({ recipe, ingredients, servings, formatAmount, 
             >
               Als gekocht markieren
             </button>
-            <button onClick={onClose} className="mt-4 text-[14.5px] font-medium text-tint">
+            <button onClick={onClose} className="mt-4 text-[14.5px] font-medium text-tint" style={{ minHeight: 44 }}>
               Zum Rezept
             </button>
           </div>
@@ -190,30 +252,37 @@ export default function CookMode({ recipe, ingredients, servings, formatAmount, 
               {step?.text}
             </p>
 
-            {/* Schritt-Timer */}
-            {durationSec && (
+            {/* Timer für diesen Schritt (benannt, läuft beim Weiterblättern weiter) */}
+            {(durationSec || currentTimer) && (
               <div className="flex items-center gap-3 rounded-[16px] bg-bg px-4 py-3.5">
                 <span className="grid place-content-center w-10 h-10 rounded-full bg-tint-soft text-tint shrink-0">
                   <Icon name="clock" size={19} strokeWidth={2} />
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[15px] font-semibold text-tint">
-                    {timerLeft === durationSec && !timerOn
+                    {!currentTimer
                       ? fmtDuration(durationSec)
-                      : timerLeft === 0
+                      : currentTimer.left === 0
                         ? '0:00 — fertig!'
-                        : fmtClock(timerLeft)}
+                        : fmtClock(currentTimer.left)}
                   </p>
-                  <p className="text-[13px] text-ink-3">Timer für diesen Schritt</p>
+                  <p className="text-[13px] text-ink-3">
+                    Timer „Schritt {idx + 1}“ — läuft auch beim Weiterblättern
+                  </p>
                 </div>
-                {timerLeft > 0 && (
-                  <button
-                    onClick={() => setTimerOn(!timerOn)}
-                    className="rounded-full bg-tint px-4 py-2 text-[13.5px] font-semibold text-white active:bg-tint-dark transition shrink-0"
-                  >
-                    {timerOn ? 'Pause' : timerLeft === durationSec ? 'Start' : 'Weiter'}
-                  </button>
-                )}
+                <button
+                  onClick={startTimerForStep}
+                  className="rounded-full bg-tint px-4 text-[13.5px] font-semibold text-white active:bg-tint-dark transition shrink-0"
+                  style={{ minHeight: 44 }}
+                >
+                  {!currentTimer
+                    ? 'Start'
+                    : currentTimer.left === 0
+                      ? 'Nochmal'
+                      : currentTimer.running
+                        ? 'Pause'
+                        : 'Weiter'}
+                </button>
               </div>
             )}
 
@@ -262,6 +331,8 @@ export default function CookMode({ recipe, ingredients, servings, formatAmount, 
       {sheetOpen && (
         <div className="absolute inset-0 z-10" style={{ background: 'rgb(0 0 0 / 0.25)' }} onClick={() => setSheetOpen(false)}>
           <div
+            role="dialog"
+            aria-label="Zutatenliste"
             className="absolute bottom-0 inset-x-0 bg-card animate-sheet px-5 pt-3 max-h-[70%] overflow-y-auto"
             style={{ borderRadius: '22px 22px 0 0', boxShadow: 'var(--shadow-sheet)', paddingBottom: 'max(28px, env(safe-area-inset-bottom))' }}
             onClick={(e) => e.stopPropagation()}

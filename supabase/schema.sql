@@ -132,3 +132,65 @@ create policy "shopping delete" on public.shopping_list
 
 -- Phase 4: Kochstatus
 alter table public.recipes add column if not exists status text not null default 'zum_ausprobieren' check (status in ('zum_ausprobieren','gekocht'));
+
+-- V1.3 Paket C: Sammlungen (eigene Rezept-Gruppen wie „Gäste-Menüs")
+create table public.collections (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+create table public.recipe_collections (
+  recipe_id uuid not null references public.recipes (id) on delete cascade,
+  collection_id uuid not null references public.collections (id) on delete cascade,
+  primary key (recipe_id, collection_id)
+);
+
+create index collections_user_idx on public.collections (user_id, name);
+create index recipe_collections_coll_idx on public.recipe_collections (collection_id);
+
+alter table public.collections enable row level security;
+alter table public.recipe_collections enable row level security;
+
+-- Gleiche Logik wie oben: Besitzer alles, Review-Nutzer nur lesen.
+create policy "collections select" on public.collections
+  for select using (
+    auth.uid() = user_id
+    or auth.uid() = '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  );
+create policy "collections insert" on public.collections
+  for insert with check (
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  );
+create policy "collections update" on public.collections
+  for update using (
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  ) with check (
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  );
+create policy "collections delete" on public.collections
+  for delete using (
+    auth.uid() = user_id
+    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+  );
+
+create policy "recipe_collections select" on public.recipe_collections
+  for select using (
+    exists (select 1 from public.collections c where c.id = collection_id
+      and (c.user_id = auth.uid() or auth.uid() = '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid))
+  );
+create policy "recipe_collections insert" on public.recipe_collections
+  for insert with check (
+    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+    and exists (select 1 from public.collections c where c.id = collection_id and c.user_id = auth.uid())
+    and exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
+  );
+create policy "recipe_collections delete" on public.recipe_collections
+  for delete using (
+    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
+    and exists (select 1 from public.collections c where c.id = collection_id and c.user_id = auth.uid())
+  );

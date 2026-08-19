@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import { runWrite } from '../lib/mutate.js'
 import { notify } from '../lib/notify.js'
 import { READ_ONLY_MSG } from '../lib/roles.js'
+import { groupItems } from '../lib/shopGroups.js'
 import Icon from '../components/Icon.jsx'
 
 function fmt(a) {
@@ -97,12 +98,16 @@ export default function ShoppingList({ readOnly = false }) {
 
   const open = items.filter((x) => !x.checked)
   const done = items.filter((x) => x.checked)
+  // Offene Artikel nach Warengruppen sortiert – wie man durch den Laden läuft
+  const groups = groupItems(open)
 
   function Row({ item, dimmed, last }) {
     return (
       <button
         onClick={() => toggle(item)}
+        aria-pressed={item.checked}
         className="relative w-full flex items-center gap-3 px-4 py-3 text-left active:bg-black/[0.03] transition"
+        style={{ minHeight: 44 }}
       >
         <input type="checkbox" className="checkbox-circle pointer-events-none" checked={item.checked} readOnly tabIndex={-1} />
         <span className={`text-[15.5px] ${dimmed ? 'text-ink-3 line-through' : 'text-ink'}`}>
@@ -145,13 +150,18 @@ export default function ShoppingList({ readOnly = false }) {
         </div>
       ) : (
         <>
-          {open.length > 0 && (
-            <div className="bg-card rounded-[16px] shadow-card overflow-hidden">
-              {open.map((item, i) => (
-                <Row key={item.id} item={item} last={i === open.length - 1} />
-              ))}
+          {groups.map((g, gi) => (
+            <div key={g.key} className={gi > 0 ? 'mt-5' : ''}>
+              <p className="text-[13px] font-semibold uppercase text-ink-3 mb-2" style={{ letterSpacing: '0.03em' }}>
+                {g.label} · {g.items.length}
+              </p>
+              <div className="bg-card rounded-[16px] shadow-card overflow-hidden">
+                {g.items.map((item, i) => (
+                  <Row key={item.id} item={item} last={i === g.items.length - 1} />
+                ))}
+              </div>
             </div>
-          )}
+          ))}
           {done.length > 0 && (
             <>
               <p className="text-[13px] font-semibold uppercase text-ink-3 mt-6 mb-2" style={{ letterSpacing: '0.03em' }}>
