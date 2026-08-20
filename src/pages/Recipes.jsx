@@ -89,7 +89,8 @@ function GridCard({ r, onOpen }) {
           </span>
         )}
       </div>
-      <p className="text-[15px] font-semibold text-ink leading-snug line-clamp-2 px-2 pt-2">{r.title}</p>
+      {/* Titel reserviert immer zwei Zeilen – alle Karten gleich hoch */}
+      <p className="text-[15px] font-semibold text-ink leading-snug line-clamp-2 px-2 pt-2" style={{ minHeight: 'calc(2.75em + 8px)' }}>{r.title}</p>
       <p className="text-[12.5px] text-ink-3 px-2 pt-0.5">
         {[(r.prep_time_min ?? 0) + (r.cook_time_min ?? 0) > 0 ? `${(r.prep_time_min ?? 0) + (r.cook_time_min ?? 0)} Min` : null, r.category].filter(Boolean).join(' · ')}
       </p>

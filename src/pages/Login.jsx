@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { Logo } from '../App.jsx'
+import Icon from '../components/Icon.jsx'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
 
@@ -47,16 +49,31 @@ export default function Login() {
           </div>
           <div className="space-y-1.5">
             <label htmlFor="password" className={labelCls}>Passwort</label>
-            <input
-              id="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputCls}
-            />
+            {/* Passwortfeld mit Auge zum Ein-/Ausblenden der Eingabe */}
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={inputCls}
+                style={{ paddingRight: 52 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-1 top-1/2 -translate-y-1/2 grid place-content-center text-ink-3 active:opacity-70 transition"
+                style={{ width: 44, height: 44 }}
+                aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                aria-pressed={showPassword}
+                tabIndex={0}
+              >
+                <Icon name={showPassword ? 'eyeOff' : 'eye'} size={20} strokeWidth={1.8} />
+              </button>
+            </div>
           </div>
           {error && (
             <p className="text-[13.5px] text-love rounded-[12px] px-4 py-3" style={{ background: 'rgb(195 61 36 / 0.1)' }}>
