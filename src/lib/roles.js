@@ -1,7 +1,8 @@
-// Bekannte Nur-Lese-Konten (z. B. der Review-Zugang).
+// Bekannte Nur-Lese-Konten. Aktuell keines: der Review-Zugang wurde am 23.08.2026
+// samt seiner Ausnahmen in den Policies entfernt.
 // WICHTIG: Die Sicherheit erzwingt der Server über Row Level Security –
 // diese Liste steuert nur die Oberfläche (Buttons deaktivieren, Hinweise).
-const READ_ONLY_IDS = ['8e60d3c4-c4c6-4390-8680-0db0df4fd231']
+const READ_ONLY_IDS = []
 
 export function isReadOnlySession(session) {
   return READ_ONLY_IDS.includes(session?.user?.id)
