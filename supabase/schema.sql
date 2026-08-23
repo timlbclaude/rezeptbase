@@ -1,5 +1,16 @@
--- Rezeptbase – Datenbankschema (Phase 1)
+-- Rezeptbase – Datenbankschema
 -- Auszuführen im Supabase SQL Editor.
+--
+-- Stand 23.08.2026: Diese Datei bildet den tatsächlichen Zustand der Datenbank ab.
+-- Der Review-Zugang (review@rezeptbase.test) ist am 23.08.2026 gelöscht worden,
+-- seine Ausnahmen sind aus allen Zugriffsregeln entfernt. Wer diese Datei
+-- ausführt, bekommt genau das, was jetzt live ist – keine Sonderzugänge.
+--
+-- Zwei Details in den Regeln unten:
+--   · (select auth.uid()) statt auth.uid(): inhaltlich dasselbe, aber der Wert
+--     wird einmal ermittelt statt für jede Zeile neu.
+--   · "to authenticated": die Regel wird für nicht angemeldete Besucher gar
+--     nicht erst geprüft.
 
 create table public.recipes (
   id uuid primary key default gen_random_uuid(),
@@ -49,87 +60,6 @@ create index recipes_user_idx on public.recipes (user_id, created_at desc);
 create index ingredients_recipe_idx on public.ingredients (recipe_id, sort_order);
 create index shopping_user_idx on public.shopping_list (user_id, created_at);
 
--- Row Level Security: jeder Nutzer sieht nur seine eigenen Daten.
--- Ausnahme (15.08.2026): Review-Nutzer review@rezeptbase.test
--- (UUID 8e60d3c4-c4c6-4390-8680-0db0df4fd231) darf alles LESEN, nichts schreiben.
--- Zum Entfernen des Review-Zugangs: Policies ohne die Reviewer-Klauseln neu anlegen
--- und den Nutzer im Dashboard loeschen.
-alter table public.recipes enable row level security;
-alter table public.ingredients enable row level security;
-alter table public.shopping_list enable row level security;
-
-create policy "recipes select" on public.recipes
-  for select using (
-    auth.uid() = user_id
-    or auth.uid() = '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
-create policy "recipes insert" on public.recipes
-  for insert with check (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
-create policy "recipes update" on public.recipes
-  for update using (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  ) with check (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
-create policy "recipes delete" on public.recipes
-  for delete using (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
-
-create policy "ingredients select" on public.ingredients
-  for select using (
-    exists (select 1 from public.recipes r where r.id = recipe_id
-      and (r.user_id = auth.uid() or auth.uid() = '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid))
-  );
-create policy "ingredients insert" on public.ingredients
-  for insert with check (
-    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-    and exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
-  );
-create policy "ingredients update" on public.ingredients
-  for update using (
-    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-    and exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
-  ) with check (
-    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-    and exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
-  );
-create policy "ingredients delete" on public.ingredients
-  for delete using (
-    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-    and exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
-  );
-
-create policy "shopping select" on public.shopping_list
-  for select using (
-    auth.uid() = user_id
-    or auth.uid() = '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
-create policy "shopping insert" on public.shopping_list
-  for insert with check (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
-create policy "shopping update" on public.shopping_list
-  for update using (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  ) with check (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
-create policy "shopping delete" on public.shopping_list
-  for delete using (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
-
 -- Phase 4: Kochstatus
 alter table public.recipes add column if not exists status text not null default 'zum_ausprobieren' check (status in ('zum_ausprobieren','gekocht'));
 
@@ -150,47 +80,140 @@ create table public.recipe_collections (
 create index collections_user_idx on public.collections (user_id, name);
 create index recipe_collections_coll_idx on public.recipe_collections (collection_id);
 
-alter table public.collections enable row level security;
+-- ============================================================================
+--  Row Level Security
+--  Grundsatz: Du kommst an eine Zeile heran, wenn sie dir gehört. Sonst nicht.
+--  Keine Ausnahmen, keine fest eingetragenen Nutzerkennungen.
+-- ============================================================================
+
+alter table public.recipes            enable row level security;
+alter table public.ingredients        enable row level security;
+alter table public.shopping_list      enable row level security;
+alter table public.collections        enable row level security;
 alter table public.recipe_collections enable row level security;
 
--- Gleiche Logik wie oben: Besitzer alles, Review-Nutzer nur lesen.
-create policy "collections select" on public.collections
-  for select using (
-    auth.uid() = user_id
-    or auth.uid() = '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
-create policy "collections insert" on public.collections
-  for insert with check (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
-create policy "collections update" on public.collections
-  for update using (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  ) with check (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
-create policy "collections delete" on public.collections
-  for delete using (
-    auth.uid() = user_id
-    and auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-  );
+-- ---------------------------------------------------------------- recipes --
+drop policy if exists "recipes select" on public.recipes;
+create policy "recipes select" on public.recipes
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
 
+drop policy if exists "recipes insert" on public.recipes;
+create policy "recipes insert" on public.recipes
+  for insert to authenticated
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "recipes update" on public.recipes;
+create policy "recipes update" on public.recipes
+  for update to authenticated
+  using ( (select auth.uid()) = user_id )
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "recipes delete" on public.recipes;
+create policy "recipes delete" on public.recipes
+  for delete to authenticated
+  using ( (select auth.uid()) = user_id );
+
+-- ------------------------------------------------------------ ingredients --
+-- Zutaten haben keine eigene Nutzerspalte. Es zählt, wem das Rezept gehört.
+drop policy if exists "ingredients select" on public.ingredients;
+create policy "ingredients select" on public.ingredients
+  for select to authenticated
+  using ( exists ( select 1 from public.recipes r
+                   where r.id = ingredients.recipe_id
+                     and r.user_id = (select auth.uid()) ) );
+
+drop policy if exists "ingredients insert" on public.ingredients;
+create policy "ingredients insert" on public.ingredients
+  for insert to authenticated
+  with check ( exists ( select 1 from public.recipes r
+                        where r.id = ingredients.recipe_id
+                          and r.user_id = (select auth.uid()) ) );
+
+drop policy if exists "ingredients update" on public.ingredients;
+create policy "ingredients update" on public.ingredients
+  for update to authenticated
+  using ( exists ( select 1 from public.recipes r
+                   where r.id = ingredients.recipe_id
+                     and r.user_id = (select auth.uid()) ) )
+  with check ( exists ( select 1 from public.recipes r
+                        where r.id = ingredients.recipe_id
+                          and r.user_id = (select auth.uid()) ) );
+
+drop policy if exists "ingredients delete" on public.ingredients;
+create policy "ingredients delete" on public.ingredients
+  for delete to authenticated
+  using ( exists ( select 1 from public.recipes r
+                   where r.id = ingredients.recipe_id
+                     and r.user_id = (select auth.uid()) ) );
+
+-- ---------------------------------------------------------- shopping_list --
+drop policy if exists "shopping select" on public.shopping_list;
+create policy "shopping select" on public.shopping_list
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
+
+drop policy if exists "shopping insert" on public.shopping_list;
+create policy "shopping insert" on public.shopping_list
+  for insert to authenticated
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "shopping update" on public.shopping_list;
+create policy "shopping update" on public.shopping_list
+  for update to authenticated
+  using ( (select auth.uid()) = user_id )
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "shopping delete" on public.shopping_list;
+create policy "shopping delete" on public.shopping_list
+  for delete to authenticated
+  using ( (select auth.uid()) = user_id );
+
+-- ------------------------------------------------------------ collections --
+drop policy if exists "collections select" on public.collections;
+create policy "collections select" on public.collections
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
+
+drop policy if exists "collections insert" on public.collections;
+create policy "collections insert" on public.collections
+  for insert to authenticated
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "collections update" on public.collections;
+create policy "collections update" on public.collections
+  for update to authenticated
+  using ( (select auth.uid()) = user_id )
+  with check ( (select auth.uid()) = user_id );
+
+drop policy if exists "collections delete" on public.collections;
+create policy "collections delete" on public.collections
+  for delete to authenticated
+  using ( (select auth.uid()) = user_id );
+
+-- ----------------------------------------------------- recipe_collections --
+-- Verknüpfungstabelle. Sie hat bewusst keine update-Regel: eine Zuordnung
+-- wird nicht geändert, sondern gelöscht und neu angelegt.
+drop policy if exists "recipe_collections select" on public.recipe_collections;
 create policy "recipe_collections select" on public.recipe_collections
-  for select using (
-    exists (select 1 from public.collections c where c.id = collection_id
-      and (c.user_id = auth.uid() or auth.uid() = '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid))
-  );
+  for select to authenticated
+  using ( exists ( select 1 from public.collections c
+                   where c.id = recipe_collections.collection_id
+                     and c.user_id = (select auth.uid()) ) );
+
+drop policy if exists "recipe_collections insert" on public.recipe_collections;
 create policy "recipe_collections insert" on public.recipe_collections
-  for insert with check (
-    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-    and exists (select 1 from public.collections c where c.id = collection_id and c.user_id = auth.uid())
-    and exists (select 1 from public.recipes r where r.id = recipe_id and r.user_id = auth.uid())
-  );
+  for insert to authenticated
+  with check ( exists ( select 1 from public.collections c
+                        where c.id = recipe_collections.collection_id
+                          and c.user_id = (select auth.uid()) )
+               and exists ( select 1 from public.recipes r
+                            where r.id = recipe_collections.recipe_id
+                              and r.user_id = (select auth.uid()) ) );
+
+drop policy if exists "recipe_collections delete" on public.recipe_collections;
 create policy "recipe_collections delete" on public.recipe_collections
-  for delete using (
-    auth.uid() <> '8e60d3c4-c4c6-4390-8680-0db0df4fd231'::uuid
-    and exists (select 1 from public.collections c where c.id = collection_id and c.user_id = auth.uid())
-  );
+  for delete to authenticated
+  using ( exists ( select 1 from public.collections c
+                   where c.id = recipe_collections.collection_id
+                     and c.user_id = (select auth.uid()) ) );
