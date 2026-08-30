@@ -3,6 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # Backup-Commits (nur backups/) lösen kein Deploy aus
+    paths-ignore:
+      - 'backups/**'
   workflow_dispatch:
 
 permissions:

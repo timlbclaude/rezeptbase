@@ -1,0 +1,37 @@
+name: Wöchentliche Rezept-Sicherung
+
+on:
+  schedule:
+    # Montag + Donnerstag 03:17 UTC. Zwei Läufe pro Woche halten das
+    # Supabase-Free-Tier-Projekt zusätzlich aktiv (pausiert sonst nach
+    # ~7 Tagen ohne Datenbank-Aktivität).
+    - cron: '17 3 * * 1,4'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Daten sichern
+        run: node scripts/backup.mjs
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Sicherung committen (nur bei Änderung)
+        run: |
+          git config user.name "rezeptbase-backup[bot]"
+          git config user.email "backup@rezeptbase.invalid"
+          git add backups/
+          if git diff --cached --quiet; then
+            echo "Keine Änderungen – kein Commit nötig."
+          else
+            git commit -m "Automatische Rezept-Sicherung $(date -u +%F)"
+            git push
+          fi
