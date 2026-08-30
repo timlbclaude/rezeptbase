@@ -9,7 +9,7 @@ import CookMode from '../components/CookMode.jsx'
 import ImportPage from './ImportPage.jsx'
 
 // Mengenformatierung zentral in lib/amounts.js (überall dieselben Zahlen)
-import { formatScaled, formatIngredientAmount } from '../lib/amounts.js'
+import { formatIngredientAmount } from '../lib/amounts.js'
 
 function formatDate(d) {
   if (!d) return ''
