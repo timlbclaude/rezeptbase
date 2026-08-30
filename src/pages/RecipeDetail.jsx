@@ -6,6 +6,8 @@ import { READ_ONLY_MSG } from '../lib/roles.js'
 import { onImgError } from '../lib/imageFallback.js'
 import Icon from '../components/Icon.jsx'
 import CookMode from '../components/CookMode.jsx'
+import CartSheet from '../components/CartSheet.jsx'
+import CollectionsSheet from '../components/CollectionsSheet.jsx'
 import ImportPage from './ImportPage.jsx'
 
 // Mengenformatierung zentral in lib/amounts.js (überall dieselben Zahlen)
@@ -584,127 +586,31 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = f
 
       {/* Einkaufs-Auswahl-Sheet: Zutaten einzeln an-/abwählen */}
       {cartOpen && (
-        <div className="fixed inset-0 z-30" onClick={() => setCartOpen(false)} style={{ background: 'rgb(0 0 0 / 0.25)' }}>
-          <div
-            role="dialog"
-            aria-label="Zutaten für die Einkaufsliste auswählen"
-            className="absolute bottom-0 inset-x-0 bg-card rounded-t-[22px] animate-sheet px-5 pt-3 flex flex-col"
-            style={{ boxShadow: 'var(--shadow-sheet)', maxHeight: '80%', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto rounded-full shrink-0" style={{ width: 38, height: 4, background: 'var(--color-handle)' }} />
-            <div className="flex items-center justify-between mt-4 mb-1 shrink-0">
-              <h3 className="text-[17px] font-bold text-ink">Auf die Einkaufsliste</h3>
-              <button
-                onClick={() => {
-                  const all = ingredients.filter((i) => i.name?.trim())
-                  const allOn = all.every((i) => cartSel[i.id])
-                  const sel = {}
-                  for (const i of all) sel[i.id] = !allOn
-                  setCartSel(sel)
-                }}
-                className="text-[14px] font-semibold text-tint"
-                style={{ minHeight: 44 }}
-              >
-                {ingredients.filter((i) => i.name?.trim()).every((i) => cartSel[i.id]) ? 'Keine' : 'Alle'}
-              </button>
-            </div>
-            <p className="text-[13px] text-ink-3 mb-2 shrink-0">Mengen für {servings} {servings === 1 ? 'Portion' : 'Portionen'} – gleiche Artikel werden zusammengeführt.</p>
-            <div className="overflow-y-auto min-h-0">
-              {ingredients.filter((i) => i.name?.trim()).map((ing, i, arr) => (
-                <button
-                  key={ing.id}
-                  onClick={() => setCartSel((s) => ({ ...s, [ing.id]: !s[ing.id] }))}
-                  aria-pressed={!!cartSel[ing.id]}
-                  className="relative w-full flex items-center gap-3 py-2.5 text-left"
-                >
-                  <input type="checkbox" className="checkbox-circle pointer-events-none" checked={!!cartSel[ing.id]} readOnly tabIndex={-1} />
-                  <span className={`flex-1 text-[15px] ${cartSel[ing.id] ? 'text-ink' : 'text-ink-3'}`}>{ing.name}</span>
-                  <span className="text-[14px] text-ink-3 shrink-0">{formatIngredientAmount(ing, factor)}</span>
-                  {i < arr.length - 1 && (
-                    <span className="absolute bottom-0 left-9 right-0 pointer-events-none" style={{ height: 0.5, background: 'var(--color-separator)' }} />
-                  )}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => addToShoppingList(new Set(Object.keys(cartSel).filter((k) => cartSel[k])))}
-              disabled={cartBusy || Object.values(cartSel).every((v) => !v)}
-              className="mt-3 h-[50px] rounded-[14px] bg-tint text-white text-[16px] font-semibold active:bg-tint-dark transition disabled:opacity-45 shrink-0"
-            >
-              {cartBusy ? 'Wird hinzugefügt …' : `${Object.values(cartSel).filter(Boolean).length} ${Object.values(cartSel).filter(Boolean).length === 1 ? 'Zutat' : 'Zutaten'} hinzufügen`}
-            </button>
-          </div>
-        </div>
+        <CartSheet
+          ingredients={ingredients}
+          factor={factor}
+          servings={servings}
+          cartSel={cartSel}
+          setCartSel={setCartSel}
+          cartBusy={cartBusy}
+          onSubmit={addToShoppingList}
+          onClose={() => setCartOpen(false)}
+        />
       )}
 
       {/* Sammlungen-Sheet */}
       {collOpen && (
-        <div className="fixed inset-0 z-30" onClick={() => setCollOpen(false)} style={{ background: 'rgb(0 0 0 / 0.25)' }}>
-          <div
-            role="dialog"
-            aria-label="Rezept in Sammlungen einordnen"
-            className="absolute bottom-0 inset-x-0 bg-card rounded-t-[22px] animate-sheet px-5 pt-3 flex flex-col"
-            style={{ boxShadow: 'var(--shadow-sheet)', maxHeight: '80%', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto rounded-full shrink-0" style={{ width: 38, height: 4, background: 'var(--color-handle)' }} />
-            <h3 className="text-[17px] font-bold text-ink mt-4 mb-1 shrink-0">Sammlungen</h3>
-            <p className="text-[13px] text-ink-3 mb-2 shrink-0">
-              Ordne das Rezept eigenen Sammlungen zu – z.B. „Schnelle Feierabendküche“ oder „Gäste-Menüs“.
-            </p>
-            <div className="overflow-y-auto min-h-0">
-              {collections.length === 0 && (
-                <p className="text-[14px] text-ink-3 py-3">Noch keine Sammlungen – lege unten die erste an.</p>
-              )}
-              {collections.map((c, i) => (
-                <button
-                  key={c.id}
-                  onClick={() => toggleCollection(c.id)}
-                  aria-pressed={linkedColls.includes(c.id)}
-                  className="relative w-full flex items-center justify-between gap-3 py-3 text-left"
-                  style={{ opacity: readOnly ? 0.5 : undefined }}
-                  aria-disabled={readOnly}
-                >
-                  <span className={`text-[15.5px] ${linkedColls.includes(c.id) ? 'font-semibold text-ink' : 'text-ink-2'}`}>
-                    {c.name}
-                  </span>
-                  {linkedColls.includes(c.id) && (
-                    <span className="text-tint"><Icon name="check" size={17} strokeWidth={2.4} /></span>
-                  )}
-                  {i < collections.length - 1 && (
-                    <span className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 0.5, background: 'var(--color-separator)' }} />
-                  )}
-                </button>
-              ))}
-            </div>
-            <form onSubmit={createCollection} className="flex gap-2 mt-3 shrink-0">
-              <input
-                value={newCollName}
-                onChange={(e) => setNewCollName(e.target.value)}
-                placeholder="Neue Sammlung anlegen …"
-                readOnly={readOnly}
-                className="flex-1 rounded-[12px] bg-fill px-4 py-3 text-[15px] outline-none border border-transparent focus:border-tint placeholder:text-ink-3"
-              />
-              <button
-                type="submit"
-                disabled={collBusy || !newCollName.trim()}
-                className="grid place-content-center rounded-[12px] bg-tint text-white shrink-0 active:bg-tint-dark transition disabled:opacity-45"
-                style={{ width: 46, height: 46, opacity: readOnly ? 0.5 : undefined }}
-                aria-disabled={readOnly}
-                aria-label="Sammlung anlegen"
-              >
-                <Icon name="plus" size={19} strokeWidth={2.4} />
-              </button>
-            </form>
-            <button
-              onClick={() => setCollOpen(false)}
-              className="mt-3 h-[48px] rounded-[14px] bg-fill text-[15.5px] font-semibold text-ink-2 active:opacity-80 transition shrink-0"
-            >
-              Fertig
-            </button>
-          </div>
-        </div>
+        <CollectionsSheet
+          collections={collections}
+          linkedColls={linkedColls}
+          onToggle={toggleCollection}
+          onCreate={createCollection}
+          newCollName={newCollName}
+          setNewCollName={setNewCollName}
+          collBusy={collBusy}
+          readOnly={readOnly}
+          onClose={() => setCollOpen(false)}
+        />
       )}
 
       {/* Fixe CTA-Leiste */}

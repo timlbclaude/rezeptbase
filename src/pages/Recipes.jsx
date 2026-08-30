@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
-import { applyTheme, getTheme } from '../lib/theme.js'
+import { getTheme } from '../lib/theme.js'
 import { buildHaystack, matchesQuery } from '../lib/search.js'
-import { onImgError } from '../lib/imageFallback.js'
 import { parseHash as parseHashPure, buildListHash } from '../lib/route.js'
 import { runWrite } from '../lib/mutate.js'
 import { notify } from '../lib/notify.js'
@@ -11,6 +10,10 @@ import ImportPage from './ImportPage.jsx'
 import RecipeDetail from './RecipeDetail.jsx'
 import ShoppingList from './ShoppingList.jsx'
 import Icon from '../components/Icon.jsx'
+import { RecipeRow, GridCard, SectionLabel, RowSkeleton } from '../components/RecipeCards.jsx'
+import TabBar from '../components/TabBar.jsx'
+import FilterSheet from '../components/FilterSheet.jsx'
+import ProfileSheet from '../components/ProfileSheet.jsx'
 
 const CHIPS = [
   { key: 'alle', label: 'Alle' },
@@ -20,137 +23,6 @@ const CHIPS = [
 
 // Hash-Routing: reine Funktionen liegen in lib/route.js (dort auch getestet)
 const parseHash = () => parseHashPure(window.location.hash)
-
-const SORTS = [
-  { key: 'neueste', label: 'Neueste zuerst' },
-  { key: 'bewertung', label: 'Beste Bewertung' },
-  { key: 'gekocht', label: 'Zuletzt gekocht' },
-  { key: 'titel', label: 'Titel A–Z' },
-]
-
-function metaLine(r) {
-  const time = (r.prep_time_min ?? 0) + (r.cook_time_min ?? 0)
-  const cooked = (r.status ?? 'zum_ausprobieren') === 'gekocht'
-  return [
-    time > 0 ? `${time} Min` : null,
-    r.rating ? `★ ${r.rating},0` : null,
-    cooked ? 'Gekocht' : r.category,
-  ].filter(Boolean).join(' · ')
-}
-
-function Thumb({ src, size = 52, radius = 10 }) {
-  return src ? (
-    <img src={src} alt="" loading="lazy" onError={onImgError} className="object-cover shrink-0" style={{ width: size, height: size, borderRadius: radius }} />
-  ) : (
-    <span className="grid place-content-center bg-fill text-ink-3 shrink-0" style={{ width: size, height: size, borderRadius: radius }}>
-      <Icon name="utensils" size={size * 0.42} strokeWidth={1.8} />
-    </span>
-  )
-}
-
-function RecipeRow({ r, onOpen, last }) {
-  return (
-    <button
-      onClick={onOpen}
-      className="relative w-full flex items-center gap-3 px-3 py-2.5 text-left active:bg-black/[0.03] transition"
-    >
-      <Thumb src={r.image_url} />
-      <span className="flex-1 min-w-0">
-        <span className="block text-[15.5px] font-semibold text-ink truncate">{r.title}</span>
-        <span className="block text-[12.5px] text-ink-3 mt-0.5 truncate">{metaLine(r)}</span>
-      </span>
-      <span className="shrink-0" style={{ color: 'var(--color-ink-4)' }}>
-        <Icon name="chevronRight" size={17} strokeWidth={2.2} />
-      </span>
-      {!last && (
-        <span
-          className="absolute bottom-0 right-0 pointer-events-none"
-          style={{ left: 73, height: 0.5, background: 'var(--color-separator)' }}
-        />
-      )}
-    </button>
-  )
-}
-
-function GridCard({ r, onOpen }) {
-  return (
-    <button onClick={onOpen} className="text-left bg-card rounded-[18px] shadow-card p-1.5 pb-3 active:scale-[0.98] transition">
-      <div className="relative">
-        {r.image_url ? (
-          <img src={r.image_url} alt="" loading="lazy" onError={onImgError} className="w-full object-cover rounded-[13px]" style={{ height: 106 }} />
-        ) : (
-          <div className="w-full grid place-content-center bg-fill text-ink-3 rounded-[13px]" style={{ height: 106 }}>
-            <Icon name="utensils" size={26} strokeWidth={1.6} />
-          </div>
-        )}
-        {r.is_favorite && (
-          <span className="absolute top-1.5 right-1.5 grid place-content-center w-6 h-6 rounded-full text-love" style={{ background: 'var(--color-overlay-btn)' }}>
-            <Icon name="heart" size={13} filled />
-          </span>
-        )}
-      </div>
-      {/* Titel reserviert immer zwei Zeilen – alle Karten gleich hoch */}
-      <p className="text-[15px] font-semibold text-ink leading-snug line-clamp-2 px-2 pt-2" style={{ minHeight: 'calc(2.75em + 8px)' }}>{r.title}</p>
-      <p className="text-[12.5px] text-ink-3 px-2 pt-0.5">
-        {[(r.prep_time_min ?? 0) + (r.cook_time_min ?? 0) > 0 ? `${(r.prep_time_min ?? 0) + (r.cook_time_min ?? 0)} Min` : null, r.category].filter(Boolean).join(' · ')}
-      </p>
-    </button>
-  )
-}
-
-function SectionLabel({ children }) {
-  return (
-    <p className="text-[13px] font-semibold uppercase text-ink-3 mb-2 mt-6 first:mt-0" style={{ letterSpacing: '0.03em' }}>
-      {children}
-    </p>
-  )
-}
-
-function TabBar({ tab, onTab }) {
-  const items = [
-    { key: 'rezepte', label: 'Rezepte', icon: 'book' },
-    { key: 'import', label: 'Import', icon: 'plusCircle' },
-    { key: 'einkauf', label: 'Einkauf', icon: 'bag' },
-  ]
-  return (
-    <nav
-      aria-label="Hauptnavigation"
-      className="fixed bottom-0 inset-x-0 z-20 flex justify-center gap-10"
-      style={{
-        background: 'var(--color-bar)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        boxShadow: 'inset 0 0.5px 0 var(--color-separator)',
-        padding: '9px 40px max(24px, env(safe-area-inset-bottom))',
-      }}
-    >
-      {items.map((it) => (
-        <button
-          key={it.key}
-          onClick={() => onTab(it.key)}
-          aria-current={tab === it.key ? 'page' : undefined}
-          className="flex flex-col items-center gap-0.5 min-w-16"
-          style={{ color: tab === it.key ? 'var(--color-tint)' : 'var(--color-ink-3)', minHeight: 44 }}
-        >
-          <Icon name={it.icon} size={24} strokeWidth={tab === it.key ? 2 : 1.8} />
-          <span className="text-[10px] font-semibold">{it.label}</span>
-        </button>
-      ))}
-    </nav>
-  )
-}
-
-function RowSkeleton() {
-  return (
-    <div className="flex items-center gap-3 px-3 py-2.5">
-      <div className="skeleton rounded-[10px]" style={{ width: 52, height: 52 }} />
-      <div className="flex-1 space-y-2">
-        <div className="skeleton h-3.5 w-3/4 rounded" />
-        <div className="skeleton h-3 w-1/2 rounded" />
-      </div>
-    </div>
-  )
-}
 
 export default function Recipes({ session, readOnly = false }) {
   // Startzustand aus der URL (Deep Link), z. B. #/rezept/<id>
@@ -482,175 +354,33 @@ export default function Recipes({ session, readOnly = false }) {
 
       {/* Filter-Sheet */}
       {filterOpen && (
-        <div className="fixed inset-0 z-30" onClick={() => setFilterOpen(false)} style={{ background: 'rgb(0 0 0 / 0.25)' }}>
-          <div
-            className="absolute bottom-0 inset-x-0 bg-card rounded-t-[22px] animate-sheet px-5 pt-3"
-            style={{ boxShadow: 'var(--shadow-sheet)', paddingBottom: 'max(28px, env(safe-area-inset-bottom))' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto rounded-full" style={{ width: 38, height: 4, background: 'var(--color-handle)' }} />
-            <h3 className="text-[17px] font-bold text-ink mt-4 mb-3">Filter & Sortierung</h3>
-
-            <p className="text-[12px] font-semibold uppercase text-ink-3 mb-2" style={{ letterSpacing: '0.03em' }}>Kategorie</p>
-            <div className="flex flex-wrap gap-2 mb-5">
-              <button
-                onClick={() => setCatFilter(null)}
-                aria-pressed={catFilter === null}
-                className={`rounded-full text-[13.5px] transition ${
-                  catFilter === null ? 'bg-tint text-white font-semibold' : 'bg-fill text-ink-2 font-medium'
-                }`}
-                style={{ padding: '6px 13px', minHeight: 34 }}
-              >
-                Alle
-              </button>
-              {categories.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCatFilter(catFilter === c ? null : c)}
-                  aria-pressed={catFilter === c}
-                  className={`rounded-full text-[13.5px] transition ${
-                    catFilter === c ? 'bg-tint text-white font-semibold' : 'bg-fill text-ink-2 font-medium'
-                  }`}
-                  style={{ padding: '6px 13px', minHeight: 34 }}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-
-            {collections.length > 0 && (
-              <>
-                <p className="text-[12px] font-semibold uppercase text-ink-3 mb-2" style={{ letterSpacing: '0.03em' }}>Sammlungen</p>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {collections.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => { setCollFilter(collFilter === c.id ? null : c.id); setConfirmDeleteColl(false) }}
-                      aria-pressed={collFilter === c.id}
-                      className={`rounded-full text-[13.5px] transition ${
-                        collFilter === c.id ? 'bg-tint text-white font-semibold' : 'bg-fill text-ink-2 font-medium'
-                      }`}
-                      style={{ padding: '6px 13px', minHeight: 34 }}
-                    >
-                      {c.name} · {collLinks.filter((l) => l.collection_id === c.id).length}
-                    </button>
-                  ))}
-                </div>
-                <div className="mb-5" style={{ minHeight: 20 }}>
-                  {collFilter && !readOnly && (
-                    confirmDeleteColl ? (
-                      <span className="text-[13px] text-ink-2">
-                        Sammlung „{collections.find((c) => c.id === collFilter)?.name}“ löschen? (Rezepte bleiben erhalten){' '}
-                        <button onClick={() => deleteCollection(collFilter)} className="font-semibold text-love">Ja</button>{' '}
-                        <button onClick={() => setConfirmDeleteColl(false)} className="text-ink-3">Nein</button>
-                      </span>
-                    ) : (
-                      <button onClick={() => setConfirmDeleteColl(true)} className="text-[13px] text-ink-3">
-                        Ausgewählte Sammlung löschen …
-                      </button>
-                    )
-                  )}
-                </div>
-              </>
-            )}
-
-            <p className="text-[12px] font-semibold uppercase text-ink-3 mb-1" style={{ letterSpacing: '0.03em' }}>Sortierung</p>
-            <div className="mb-5">
-              {SORTS.map((s, i) => (
-                <button
-                  key={s.key}
-                  onClick={() => setSortBy(s.key)}
-                  aria-pressed={sortBy === s.key}
-                  className="relative w-full flex items-center justify-between py-3 text-left"
-                >
-                  <span className={`text-[15.5px] ${sortBy === s.key ? 'font-semibold text-ink' : 'text-ink-2'}`}>
-                    {s.label}
-                  </span>
-                  {sortBy === s.key && (
-                    <span className="text-tint"><Icon name="check" size={17} strokeWidth={2.4} /></span>
-                  )}
-                  {i < SORTS.length - 1 && (
-                    <span className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 0.5, background: 'var(--color-separator)' }} />
-                  )}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setCatFilter(null); setSortBy('neueste'); setCollFilter(null); setConfirmDeleteColl(false) }}
-                className="flex-1 h-[48px] rounded-[14px] bg-fill text-[15.5px] font-semibold text-ink-2 active:opacity-80 transition"
-              >
-                Zurücksetzen
-              </button>
-              <button
-                onClick={() => setFilterOpen(false)}
-                className="flex-1 h-[48px] rounded-[14px] bg-tint text-white text-[15.5px] font-semibold active:bg-tint-dark transition"
-              >
-                Fertig
-              </button>
-            </div>
-          </div>
-        </div>
+        <FilterSheet
+          categories={categories}
+          catFilter={catFilter}
+          setCatFilter={setCatFilter}
+          collections={collections}
+          collLinks={collLinks}
+          collFilter={collFilter}
+          setCollFilter={setCollFilter}
+          confirmDeleteColl={confirmDeleteColl}
+          setConfirmDeleteColl={setConfirmDeleteColl}
+          onDeleteCollection={deleteCollection}
+          readOnly={readOnly}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          onClose={() => setFilterOpen(false)}
+        />
       )}
 
       {/* Profil-Sheet */}
       {profileOpen && (
-        <div className="fixed inset-0 z-30" onClick={() => setProfileOpen(false)} style={{ background: 'rgb(0 0 0 / 0.25)' }}>
-          <div
-            className="absolute bottom-0 inset-x-0 bg-card rounded-t-[22px] animate-sheet px-5 pt-3"
-            style={{ boxShadow: 'var(--shadow-sheet)', paddingBottom: 'max(28px, env(safe-area-inset-bottom))' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto rounded-full" style={{ width: 38, height: 4, background: 'var(--color-handle)' }} />
-            <div className="flex items-center gap-3 mt-5 mb-6">
-              <span className="grid place-content-center w-11 h-11 rounded-full bg-tint-soft text-tint">
-                <Icon name="user" size={20} strokeWidth={2} />
-              </span>
-              <div>
-                <p className="text-[15.5px] font-semibold text-ink">Angemeldet</p>
-                <p className="text-[13.5px] text-ink-3">{session.user.email}</p>
-              </div>
-            </div>
-
-            {readOnly && (
-              <div className="mb-5 rounded-[12px] bg-fill px-4 py-3 text-[13.5px] text-ink-2">
-                Dieses Konto besitzt <strong>nur Leserechte</strong> – du kannst alles ansehen,
-                aber nichts speichern oder ändern.
-              </div>
-            )}
-
-            {/* Darstellung: System / Hell / Dunkel */}
-            <p className="text-[12px] font-semibold uppercase text-ink-3 mb-2" style={{ letterSpacing: '0.03em' }}>
-              Darstellung
-            </p>
-            <div className="flex bg-fill rounded-[10px] p-0.5 mb-6">
-              {[
-                { key: 'system', label: 'System' },
-                { key: 'light', label: 'Hell' },
-                { key: 'dark', label: 'Dunkel' },
-              ].map((o) => (
-                <button
-                  key={o.key}
-                  onClick={() => { applyTheme(o.key); setTheme(o.key) }}
-                  className={`flex-1 rounded-[8px] py-1.5 text-[13.5px] font-semibold transition ${
-                    theme === o.key ? 'bg-card text-ink' : 'text-ink-2'
-                  }`}
-                  style={theme === o.key ? { boxShadow: '0 1px 3px rgb(0 0 0 / 0.08)' } : {}}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => supabase.auth.signOut()}
-              className="w-full h-[50px] rounded-[14px] bg-fill text-[16px] font-semibold text-love active:opacity-80 transition"
-            >
-              Abmelden
-            </button>
-          </div>
-        </div>
+        <ProfileSheet
+          session={session}
+          readOnly={readOnly}
+          theme={theme}
+          setTheme={setTheme}
+          onClose={() => setProfileOpen(false)}
+        />
       )}
     </div>
   )
