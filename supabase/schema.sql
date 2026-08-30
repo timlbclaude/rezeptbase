@@ -217,3 +217,36 @@ create policy "recipe_collections delete" on public.recipe_collections
   using ( exists ( select 1 from public.collections c
                    where c.id = recipe_collections.collection_id
                      and c.user_id = (select auth.uid()) ) );
+
+-- ---------------------------------------------------------------------------
+-- Kochverlauf: jeder „Als gekocht markieren"-Klick erzeugt einen Eintrag.
+-- So entsteht mit der Zeit eine Historie („3x gekocht, zuletzt am …").
+create table public.cook_history (
+  id uuid primary key default gen_random_uuid(),
+  recipe_id uuid not null references public.recipes (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade default auth.uid(),
+  cooked_at date not null default current_date,
+  created_at timestamptz not null default now()
+);
+
+create index cook_history_recipe_idx on public.cook_history (recipe_id, cooked_at desc);
+
+alter table public.cook_history enable row level security;
+
+drop policy if exists "cook_history select" on public.cook_history;
+create policy "cook_history select" on public.cook_history
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
+
+drop policy if exists "cook_history insert" on public.cook_history;
+create policy "cook_history insert" on public.cook_history
+  for insert to authenticated
+  with check ( (select auth.uid()) = user_id
+               and exists ( select 1 from public.recipes r
+                            where r.id = cook_history.recipe_id
+                              and r.user_id = (select auth.uid()) ) );
+
+drop policy if exists "cook_history delete" on public.cook_history;
+create policy "cook_history delete" on public.cook_history
+  for delete to authenticated
+  using ( (select auth.uid()) = user_id );

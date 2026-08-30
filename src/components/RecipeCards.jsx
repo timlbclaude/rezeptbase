@@ -23,20 +23,28 @@ function Thumb({ src, size = 52, radius = 10 }) {
   )
 }
 
-export function RecipeRow({ r, onOpen, last }) {
+// Im Auswahlmodus (selectable) zeigt die Zeile links einen Kreis-Haken und
+// der Klick wählt aus statt zu öffnen (onOpen bekommt dann die Toggle-Funktion).
+export function RecipeRow({ r, onOpen, last, selectable = false, selected = false }) {
   return (
     <button
       onClick={onOpen}
+      aria-pressed={selectable ? selected : undefined}
       className="relative w-full flex items-center gap-3 px-3 py-2.5 text-left active:bg-black/[0.03] transition"
     >
+      {selectable && (
+        <input type="checkbox" className="checkbox-circle pointer-events-none" checked={selected} readOnly tabIndex={-1} />
+      )}
       <Thumb src={r.image_url} />
       <span className="flex-1 min-w-0">
         <span className="block text-[15.5px] font-semibold text-ink truncate">{r.title}</span>
         <span className="block text-[12.5px] text-ink-3 mt-0.5 truncate">{metaLine(r)}</span>
       </span>
-      <span className="shrink-0" style={{ color: 'var(--color-ink-4)' }}>
-        <Icon name="chevronRight" size={17} strokeWidth={2.2} />
-      </span>
+      {!selectable && (
+        <span className="shrink-0" style={{ color: 'var(--color-ink-4)' }}>
+          <Icon name="chevronRight" size={17} strokeWidth={2.2} />
+        </span>
+      )}
       {!last && (
         <span
           className="absolute bottom-0 right-0 pointer-events-none"

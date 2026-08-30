@@ -29,6 +29,7 @@ const TABLES = {
   collections: 'id.asc',
   recipe_collections: 'recipe_id.asc,collection_id.asc',
   shopping_list: 'id.asc',
+  cook_history: 'id.asc',
 };
 const PAGE = 1000;
 

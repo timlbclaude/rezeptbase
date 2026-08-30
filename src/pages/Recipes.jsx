@@ -14,6 +14,10 @@ import { RecipeRow, GridCard, SectionLabel, RowSkeleton } from '../components/Re
 import TabBar from '../components/TabBar.jsx'
 import FilterSheet from '../components/FilterSheet.jsx'
 import ProfileSheet from '../components/ProfileSheet.jsx'
+import Sheet from '../components/Sheet.jsx'
+
+// Lazy-Load: so viele Zeilen werden anfangs gezeigt bzw. je Schritt nachgeladen
+const PAGE_SIZE = 40
 
 const CHIPS = [
   { key: 'alle', label: 'Alle' },
@@ -43,6 +47,15 @@ export default function Recipes({ session, readOnly = false }) {
   const [confirmDeleteColl, setConfirmDeleteColl] = useState(false)
   const [filterOpen, setFilterOpen] = useState(false)
   const [theme, setTheme] = useState(getTheme)
+  // Lazy-Load der Liste (Zeilen werden beim Scrollen nachgeladen)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const moreRef = useRef(null)
+  // Mehrfachauswahl (mehrere Rezepte in Sammlung legen oder löschen)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selIds, setSelIds] = useState({})
+  const [bulkCollOpen, setBulkCollOpen] = useState(false)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [bulkBusy, setBulkBusy] = useState(false)
 
   // Zustand → URL. Screen-Wechsel erzeugen History-Einträge (Browser-Zurück
   // führt zur Liste zurück), Such-/Filteränderungen ersetzen nur die URL.
@@ -153,6 +166,72 @@ export default function Recipes({ session, readOnly = false }) {
   }
 
   const isDefaultView = filter === 'alle' && !q.trim() && !onlyFavs && !filterActive
+
+  // Bei jeder Such-/Filteränderung wieder von vorn zeigen
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [q, filter, catFilter, sortBy, onlyFavs, collFilter])
+
+  // Sichtbarer Bereich erreicht das Listenende → nächste Zeilen nachladen
+  useEffect(() => {
+    const el = moreRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setVisibleCount((n) => n + PAGE_SIZE)
+      },
+      { rootMargin: '600px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  })
+
+  const selCount = Object.values(selIds).filter(Boolean).length
+
+  function toggleSelectMode() {
+    setSelectMode((m) => !m)
+    setSelIds({})
+    setConfirmBulkDelete(false)
+    setBulkCollOpen(false)
+  }
+
+  async function bulkAddToCollection(collId) {
+    if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
+    const ids = Object.keys(selIds).filter((k) => selIds[k])
+    if (ids.length === 0 || bulkBusy) return
+    setBulkBusy(true)
+    const rows = ids.map((id) => ({ recipe_id: id, collection_id: collId }))
+    const { ok } = await runWrite(
+      supabase.from('recipe_collections').upsert(rows, { onConflict: 'recipe_id,collection_id', ignoreDuplicates: true }),
+    )
+    if (ok) {
+      supabase.from('recipe_collections').select('recipe_id, collection_id')
+        .then(({ data }) => setCollLinks(data ?? []))
+      const collName = collections.find((c) => c.id === collId)?.name ?? 'Sammlung'
+      notify(`${ids.length} ${ids.length === 1 ? 'Rezept' : 'Rezepte'} in „${collName}“ gelegt`, 'success')
+      setBulkCollOpen(false)
+      setSelectMode(false)
+      setSelIds({})
+    }
+    setBulkBusy(false)
+  }
+
+  async function bulkDelete() {
+    if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
+    const ids = Object.keys(selIds).filter((k) => selIds[k])
+    if (ids.length === 0 || bulkBusy) return
+    setBulkBusy(true)
+    const { ok } = await runWrite(supabase.from('recipes').delete().in('id', ids))
+    if (ok) {
+      setRecipes((rs) => rs.filter((r) => !selIds[r.id]))
+      setCollLinks((ls) => ls.filter((l) => !selIds[l.recipe_id]))
+      notify(`${ids.length} ${ids.length === 1 ? 'Rezept' : 'Rezepte'} gelöscht`, 'success')
+      setSelectMode(false)
+      setSelIds({})
+      setConfirmBulkDelete(false)
+    }
+    setBulkBusy(false)
+  }
 
   function resetAllFilters() {
     setQ('')
@@ -322,21 +401,55 @@ export default function Recipes({ session, readOnly = false }) {
                   </div>
                 </>
               )}
-              <SectionLabel>Alle Rezepte</SectionLabel>
+              <div className="flex items-end justify-between">
+                <SectionLabel>Alle Rezepte</SectionLabel>
+                <button onClick={toggleSelectMode} className="text-[13.5px] font-semibold text-tint mb-2" style={{ minHeight: 32 }}>
+                  {selectMode ? 'Fertig' : 'Auswählen'}
+                </button>
+              </div>
               <div className="bg-card rounded-[16px] shadow-card overflow-hidden text-ink-4">
-                {recipes.map((r, i) => (
-                  <RecipeRow key={r.id} r={r} last={i === recipes.length - 1} onOpen={() => openScreen({ name: 'detail', id: r.id })} />
+                {recipes.slice(0, visibleCount).map((r, i, arr) => (
+                  <RecipeRow
+                    key={r.id}
+                    r={r}
+                    last={i === arr.length - 1}
+                    selectable={selectMode}
+                    selected={!!selIds[r.id]}
+                    onOpen={() =>
+                      selectMode
+                        ? setSelIds((s) => ({ ...s, [r.id]: !s[r.id] }))
+                        : openScreen({ name: 'detail', id: r.id })
+                    }
+                  />
                 ))}
               </div>
+              {recipes.length > visibleCount && <div ref={moreRef} style={{ height: 1 }} aria-hidden="true" />}
             </>
           ) : (
             <>
-              <SectionLabel>Ergebnisse · {filtered.length}</SectionLabel>
+              <div className="flex items-end justify-between">
+                <SectionLabel>Ergebnisse · {filtered.length}</SectionLabel>
+                <button onClick={toggleSelectMode} className="text-[13.5px] font-semibold text-tint mb-2" style={{ minHeight: 32 }}>
+                  {selectMode ? 'Fertig' : 'Auswählen'}
+                </button>
+              </div>
               <div className="bg-card rounded-[16px] shadow-card overflow-hidden text-ink-4">
-                {filtered.map((r, i) => (
-                  <RecipeRow key={r.id} r={r} last={i === filtered.length - 1} onOpen={() => openScreen({ name: 'detail', id: r.id })} />
+                {filtered.slice(0, visibleCount).map((r, i, arr) => (
+                  <RecipeRow
+                    key={r.id}
+                    r={r}
+                    last={i === arr.length - 1}
+                    selectable={selectMode}
+                    selected={!!selIds[r.id]}
+                    onOpen={() =>
+                      selectMode
+                        ? setSelIds((s) => ({ ...s, [r.id]: !s[r.id] }))
+                        : openScreen({ name: 'detail', id: r.id })
+                    }
+                  />
                 ))}
               </div>
+              {filtered.length > visibleCount && <div ref={moreRef} style={{ height: 1 }} aria-hidden="true" />}
             </>
           )}
 
@@ -351,6 +464,85 @@ export default function Recipes({ session, readOnly = false }) {
           else setTab(t)
         }}
       />
+
+      {/* Aktionsleiste im Auswahlmodus (schwebt über der Tab-Leiste) */}
+      {selectMode && tab === 'rezepte' && (
+        <div
+          className="fixed inset-x-4 z-20 flex justify-center pointer-events-none"
+          style={{ bottom: 'calc(max(24px, env(safe-area-inset-bottom)) + 74px)' }}
+        >
+          <div
+            className="pointer-events-auto flex items-center gap-2 bg-card rounded-full px-3 py-2 animate-rise"
+            style={{ boxShadow: '0 6px 24px rgb(0 0 0 / 0.16)' }}
+          >
+            <span className="text-[13.5px] font-semibold text-ink px-1.5" aria-live="polite">
+              {selCount} gewählt
+            </span>
+            {confirmBulkDelete ? (
+              <span className="text-[13.5px] text-ink-2 px-1">
+                Wirklich löschen?{' '}
+                <button onClick={bulkDelete} disabled={bulkBusy} className="font-semibold text-love">Ja</button>{' '}
+                <button onClick={() => setConfirmBulkDelete(false)} className="text-ink-3">Nein</button>
+              </span>
+            ) : (
+              <>
+                <button
+                  onClick={() => setBulkCollOpen(true)}
+                  disabled={selCount === 0}
+                  className="rounded-full bg-tint-soft px-3.5 py-2 text-[13.5px] font-semibold text-tint disabled:opacity-45 transition"
+                >
+                  In Sammlung …
+                </button>
+                <button
+                  onClick={() => setConfirmBulkDelete(true)}
+                  disabled={selCount === 0}
+                  className="rounded-full px-3.5 py-2 text-[13.5px] font-semibold text-love disabled:opacity-45 transition"
+                  style={{ background: 'rgb(195 61 36 / 0.1)' }}
+                >
+                  Löschen
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Sammlung wählen (für die Mehrfachauswahl) */}
+      {bulkCollOpen && (
+        <Sheet ariaLabel="Sammlung für die ausgewählten Rezepte wählen" onClose={() => setBulkCollOpen(false)}>
+          <h3 className="text-[17px] font-bold text-ink mt-4 mb-1 shrink-0">In Sammlung legen</h3>
+          <p className="text-[13px] text-ink-3 mb-2 shrink-0">
+            {selCount} {selCount === 1 ? 'ausgewähltes Rezept' : 'ausgewählte Rezepte'} – bereits zugeordnete werden übersprungen.
+          </p>
+          <div className="overflow-y-auto min-h-0">
+            {collections.length === 0 && (
+              <p className="text-[14px] text-ink-3 py-3">
+                Noch keine Sammlungen – lege zuerst in einem Rezept (Notizen → Sammlungen) eine an.
+              </p>
+            )}
+            {collections.map((c, i) => (
+              <button
+                key={c.id}
+                onClick={() => bulkAddToCollection(c.id)}
+                disabled={bulkBusy}
+                className="relative w-full flex items-center justify-between gap-3 py-3 text-left disabled:opacity-45"
+              >
+                <span className="text-[15.5px] text-ink-2">{c.name}</span>
+                <span className="text-[13.5px] text-ink-3">{collLinks.filter((l) => l.collection_id === c.id).length}</span>
+                {i < collections.length - 1 && (
+                  <span className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: 0.5, background: 'var(--color-separator)' }} />
+                )}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setBulkCollOpen(false)}
+            className="mt-3 h-[48px] rounded-[14px] bg-fill text-[15.5px] font-semibold text-ink-2 active:opacity-80 transition shrink-0"
+          >
+            Abbrechen
+          </button>
+        </Sheet>
+      )}
 
       {/* Filter-Sheet */}
       {filterOpen && (

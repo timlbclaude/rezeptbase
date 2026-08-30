@@ -50,6 +50,8 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = f
   const [linkedColls, setLinkedColls] = useState([]) // collection_ids dieses Rezepts
   const [newCollName, setNewCollName] = useState('')
   const [collBusy, setCollBusy] = useState(false)
+  // Kochverlauf (Daten aus cook_history, neueste zuerst)
+  const [cookHistory, setCookHistory] = useState([])
 
   const loadData = useCallback(() => {
     return Promise.all([
@@ -74,6 +76,9 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = f
       .then(({ data }) => setCollections(data ?? []))
     supabase.from('recipe_collections').select('collection_id').eq('recipe_id', recipeId)
       .then(({ data }) => setLinkedColls((data ?? []).map((x) => x.collection_id)))
+    supabase.from('cook_history').select('id, cooked_at').eq('recipe_id', recipeId)
+      .order('cooked_at', { ascending: false }).order('created_at', { ascending: false }).limit(30)
+      .then(({ data }) => setCookHistory(data ?? []))
   }, [recipeId])
 
   async function toggleCollection(collId) {
@@ -132,16 +137,26 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = f
     return ok
   }
 
+  // Jeder „gekocht"-Klick landet zusätzlich im Kochverlauf (cook_history)
+  async function logCooked() {
+    const { ok, data } = await runWrite(
+      supabase.from('cook_history').insert({ recipe_id: recipeId }).select('id, cooked_at').single(),
+    )
+    if (ok && data) setCookHistory((h) => [data, ...h])
+  }
+
   async function toggleStatus() {
     if (recipe.status === 'gekocht') {
       await patch({ status: 'zum_ausprobieren' })
     } else {
-      await patch({ status: 'gekocht', last_cooked_at: new Date().toISOString().slice(0, 10) })
+      const ok = await patch({ status: 'gekocht', last_cooked_at: new Date().toISOString().slice(0, 10) })
+      if (ok) await logCooked()
     }
   }
 
   async function markCooked() {
-    await patch({ status: 'gekocht', last_cooked_at: new Date().toISOString().slice(0, 10) })
+    const ok = await patch({ status: 'gekocht', last_cooked_at: new Date().toISOString().slice(0, 10) })
+    if (ok) await logCooked()
   }
 
   async function saveNotes() {
@@ -469,19 +484,31 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = f
               </span>
             </div>
 
-            <div className={`${cardCls} rounded-[14px] px-4 py-3.5 flex items-center justify-between gap-3 flex-wrap`}>
-              <div>
-                <p className="text-[15.5px] font-semibold text-ink">{cooked ? 'Gekocht' : 'Zum Ausprobieren'}</p>
-                <p className="text-[12.5px] text-ink-3 mt-0.5">
-                  {recipe.last_cooked_at ? `Zuletzt gekocht: ${formatDate(recipe.last_cooked_at)}` : 'Noch nicht gekocht'}
-                </p>
+            <div className={`${cardCls} rounded-[14px] px-4 py-3.5`}>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="text-[15.5px] font-semibold text-ink">{cooked ? 'Gekocht' : 'Zum Ausprobieren'}</p>
+                  <p className="text-[12.5px] text-ink-3 mt-0.5">
+                    {cookHistory.length > 0
+                      ? `${cookHistory.length}× gekocht · zuletzt am ${formatDate(cookHistory[0].cooked_at)}`
+                      : recipe.last_cooked_at
+                        ? `Zuletzt gekocht: ${formatDate(recipe.last_cooked_at)}`
+                        : 'Noch nicht gekocht'}
+                  </p>
+                </div>
+                <button
+                  onClick={toggleStatus}
+                  className="rounded-full bg-fill px-4 py-2 text-[13.5px] font-semibold text-ink-2 active:opacity-80 transition"
+                >
+                  {cooked ? 'Zurücksetzen' : 'Als gekocht markieren'}
+                </button>
               </div>
-              <button
-                onClick={toggleStatus}
-                className="rounded-full bg-fill px-4 py-2 text-[13.5px] font-semibold text-ink-2 active:opacity-80 transition"
-              >
-                {cooked ? 'Zurücksetzen' : 'Als gekocht markieren'}
-              </button>
+              {cookHistory.length > 1 && (
+                <p className="text-[12px] text-ink-4 mt-2.5 pt-2.5" style={{ boxShadow: 'inset 0 0.5px 0 var(--color-separator)' }}>
+                  Verlauf: {cookHistory.slice(0, 6).map((h) => formatDate(h.cooked_at)).join(' · ')}
+                  {cookHistory.length > 6 ? ' · …' : ''}
+                </p>
+              )}
             </div>
 
             <div>
