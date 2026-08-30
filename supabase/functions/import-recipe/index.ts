@@ -14,6 +14,92 @@ const json = (data: unknown, status = 200) =>
     headers: { ...CORS, "Content-Type": "application/json" },
   });
 
+// ---------- Robustheit: Timeout, Retry, Modell-Kette ----------
+
+// fetch mit Zeitlimit und einem zweiten Versuch bei Netzwerkfehler/Timeout/5xx.
+// Verhindert, dass eine hängende Kochseite den ganzen Import blockiert.
+async function fetchRetry(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs = 15000,
+  attempts = 2,
+): Promise<Response> {
+  let lastErr = "";
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+      if (res.status >= 500 && i < attempts - 1) {
+        lastErr = `HTTP ${res.status}`;
+        continue;
+      }
+      return res;
+    } catch (e) {
+      lastErr = (e as Error)?.name === "TimeoutError"
+        ? `Zeitüberschreitung nach ${Math.round(timeoutMs / 1000)}s`
+        : (e as Error)?.message ?? "Netzwerkfehler";
+    }
+  }
+  throw new Error(`Seite nicht erreichbar (${lastErr})`);
+}
+
+// Modell-Kette: Wunschmodell aus Secret ANTHROPIC_MODEL, optionales Zweitmodell
+// aus ANTHROPIC_MODEL_FALLBACK, danach fest hinterlegte Ausweichmodelle.
+// Wird ein Modell von Anthropic abgeschaltet (Retirement), greift automatisch
+// das nächste – der Import bricht dann nicht mehr komplett.
+function modelChain(): string[] {
+  const chain = [
+    Deno.env.get("ANTHROPIC_MODEL"),
+    Deno.env.get("ANTHROPIC_MODEL_FALLBACK"),
+    "claude-sonnet-4-5",
+    "claude-haiku-4-5",
+  ].filter((m): m is string => !!m && m.trim().length > 0);
+  return [...new Set(chain)];
+}
+
+// Ein Aufruf der Anthropic-API mit Modell-Fallback und Wiederholung:
+// - unbekanntes/abgeschaltetes Modell (404, oder 400 mit "model" im Fehler) → nächstes Modell
+// - Überlastung/Serverfehler (429/5xx) oder Timeout → kurz warten, ein zweiter Versuch
+// - andere Fehler (z.B. ungültiger Key) → sofort mit klarer Meldung abbrechen
+async function callAnthropic(body: Record<string, unknown>): Promise<any> {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY fehlt (Supabase Secret)");
+  const headers = {
+    "x-api-key": apiKey,
+    "anthropic-version": "2023-06-01",
+    "Content-Type": "application/json",
+  };
+
+  let lastError = "";
+  for (const model of modelChain()) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let res: Response;
+      try {
+        res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ ...body, model }),
+          signal: AbortSignal.timeout(120000),
+        });
+      } catch (e) {
+        lastError = `Netzwerk/Timeout: ${(e as Error)?.message ?? "unbekannt"}`;
+        continue; // zweiter Versuch mit demselben Modell
+      }
+      if (res.ok) return await res.json();
+      const errText = (await res.text()).slice(0, 300);
+      lastError = `HTTP ${res.status}: ${errText}`;
+      if (res.status === 404 || (res.status === 400 && /model/i.test(errText))) {
+        break; // Modell existiert nicht (mehr) → nächstes Modell der Kette
+      }
+      if (res.status === 429 || res.status >= 500) {
+        await new Promise((r) => setTimeout(r, 1500));
+        continue; // Überlastung → zweiter Versuch
+      }
+      throw new Error(`Claude API Fehler (${lastError})`);
+    }
+  }
+  throw new Error(`Claude API Fehler – kein Modell der Kette erreichbar (${lastError})`);
+}
+
 // ---------- YouTube ----------
 
 function youtubeId(url: string): string | null {
@@ -308,13 +394,14 @@ function stripHtml(html: string): string {
 }
 
 async function fetchWebsite(url: string) {
-  const res = await fetch(url, {
+  // Mit Zeitlimit + einem zweiten Versuch (siehe fetchRetry oben)
+  const res = await fetchRetry(url, {
     headers: {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
       "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
     },
     redirect: "follow",
-  });
+  }, 15000, 2);
   if (!res.ok) throw new Error(`Seite nicht erreichbar (HTTP ${res.status})`);
   const html = await res.text();
 
@@ -402,10 +489,6 @@ const RECIPE_TOOL = {
 };
 
 async function extractWithClaude(content: string, image?: { data: string; media_type: string }): Promise<any> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY fehlt (Supabase Secret)");
-  const model = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-5";
-
   const prompt =
     "Extrahiere aus der folgenden Quelle ein Kochrezept. Übersetze alles ins Deutsche. " +
     "Mengen als Zahlen (Brüche wie '1/2' als 0.5). " +
@@ -423,27 +506,12 @@ async function extractWithClaude(content: string, image?: { data: string; media_
       ]
     : prompt;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 4096,
-      tools: [RECIPE_TOOL],
-      tool_choice: { type: "tool", name: "rezept_speichern" },
-      messages: [{ role: "user", content: userContent }],
-    }),
+  const data = await callAnthropic({
+    max_tokens: 4096,
+    tools: [RECIPE_TOOL],
+    tool_choice: { type: "tool", name: "rezept_speichern" },
+    messages: [{ role: "user", content: userContent }],
   });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Claude API Fehler (HTTP ${res.status}): ${err.slice(0, 300)}`);
-  }
-  const data = await res.json();
   const toolUse = (data.content ?? []).find((b: any) => b.type === "tool_use");
   if (!toolUse) throw new Error("Claude hat kein strukturiertes Rezept geliefert");
   return toolUse.input;
@@ -451,19 +519,8 @@ async function extractWithClaude(content: string, image?: { data: string; media_
 
 // Fallback: Rezept per Websuche finden (wenn Video-Beschreibung kein Rezept enthält)
 async function extractViaWebSearch(content: string): Promise<any | null> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) return null;
-  const model = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-5";
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
+  try {
+    const data = await callAnthropic({
       max_tokens: 6000,
       tools: [
         { type: "web_search_20250305", name: "web_search", max_uses: 3 },
@@ -480,21 +537,17 @@ async function extractViaWebSearch(content: string): Promise<any | null> {
           "Nur wenn du wirklich kein passendes Rezept findest, setze erkannt=false.\n\n---\n\n" +
           content.slice(0, 5000),
       }],
-    }),
-  });
-
-  if (!res.ok) return null;
-  const data = await res.json();
-  const toolUse = (data.content ?? []).find((b: any) => b.type === "tool_use" && b.name === "rezept_speichern");
-  return toolUse ? toolUse.input : null;
+    });
+    const toolUse = (data.content ?? []).find((b: any) => b.type === "tool_use" && b.name === "rezept_speichern");
+    return toolUse ? toolUse.input : null;
+  } catch (_) {
+    // Websuche ist nur ein Bonus – bei Fehlern greift die normale Meldung
+    return null;
+  }
 }
 
 // Nur Schlagworte für ein BESTEHENDES Rezept erzeugen (Backfill / Nachpflege)
 async function generateKeywords(info: any): Promise<string[]> {
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY fehlt (Supabase Secret)");
-  const model = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-4-5";
-
   const KEYWORDS_TOOL = {
     name: "schlagworte_speichern",
     description: "Speichert die Suchbegriffe.",
@@ -505,29 +558,18 @@ async function generateKeywords(info: any): Promise<string[]> {
     },
   };
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 800,
-      tools: [KEYWORDS_TOOL],
-      tool_choice: { type: "tool", name: "schlagworte_speichern" },
-      messages: [{
-        role: "user",
-        content:
-          "Erzeuge 8-15 deutsche Suchbegriffe für dieses Rezept (Oberbegriffe wie Teigwaren/Geflügel, " +
-          "Synonyme wie Pasta/Nudeln oder Hähnchen/Poulet, Hauptzutaten-Kategorien, Zubereitungsart, Besonderheiten):\n\n" +
-          JSON.stringify(info).slice(0, 8000),
-      }],
-    }),
+  const data = await callAnthropic({
+    max_tokens: 800,
+    tools: [KEYWORDS_TOOL],
+    tool_choice: { type: "tool", name: "schlagworte_speichern" },
+    messages: [{
+      role: "user",
+      content:
+        "Erzeuge 8-15 deutsche Suchbegriffe für dieses Rezept (Oberbegriffe wie Teigwaren/Geflügel, " +
+        "Synonyme wie Pasta/Nudeln oder Hähnchen/Poulet, Hauptzutaten-Kategorien, Zubereitungsart, Besonderheiten):\n\n" +
+        JSON.stringify(info).slice(0, 8000),
+    }],
   });
-  if (!res.ok) throw new Error(`Claude API Fehler (HTTP ${res.status})`);
-  const data = await res.json();
   const toolUse = (data.content ?? []).find((b: any) => b.type === "tool_use");
   return toolUse?.input?.keywords ?? [];
 }
