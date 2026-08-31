@@ -1,5 +1,5 @@
 {
- "erstellt_am": "2026-08-30T14:34:46.829Z",
+ "erstellt_am": "2026-08-31T09:47:35.969Z",
  "hinweis": "Automatische Sicherung der Rezeptbase-Datenbank (GitHub Actions, wöchentlich).",
  "tabellen": {
   "recipes": [
@@ -81,6 +81,104 @@
      "schnell",
      "hauptgericht",
      "vegetarisch"
+    ]
+   },
+   {
+    "id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "user_id": "40327609-ba9b-4c0c-98d9-6caa045d869e",
+    "title": "Ossobuco aus dem Dutch Oven",
+    "description": "Klassisches italienisches Schmorgericht mit Kalbsbeinscheiben, die im Dutch Oven butterzart geschmort werden. Mit aromatischem Gemüse, Wein und frischer Gremolata ein echter Festtagsschmaus. (Rezept per Websuche zum Video gefunden – bitte prüfen.)",
+    "source_url": "https://youtu.be/ddD8nYbGCD0?si=CsbMnK-4hZc9nmzD",
+    "source_type": "youtube",
+    "video_embed_url": "https://www.youtube-nocookie.com/embed/ddD8nYbGCD0",
+    "image_url": "https://i.ytimg.com/vi/ddD8nYbGCD0/hqdefault.jpg",
+    "base_servings": 4,
+    "prep_time_min": 30,
+    "cook_time_min": 120,
+    "category": "Hauptgericht",
+    "cuisine": "Italienisch",
+    "steps": [
+     {
+      "nr": 1,
+      "text": "Den Grill auf 180°C indirekte Hitze vorbereiten. Dutch Oven auf dem Grill platzieren."
+     },
+     {
+      "nr": 2,
+      "text": "Zwiebeln, Karotten und Staudensellerie schälen bzw. putzen und in kleine Würfel schneiden. Knoblauchzehen fein würfeln. Rosmarin, Thymian und Lorbeerblätter mit Küchengarn zu einem Bouquet garni binden.",
+      "zutaten": "2 Zwiebeln, 2 Karotten, 2 Stangen Sellerie, 4 Zehen Knoblauch, 2 Zweige Rosmarin, 2 Zweige Thymian, 2 Lorbeerblätter"
+     },
+     {
+      "nr": 3,
+      "text": "Die Beinscheiben mit Salz und Pfeffer würzen und von beiden Seiten in Mehl wenden. Überschüssiges Mehl abschütteln.",
+      "zutaten": "4 Beinscheiben, Salz, Pfeffer, 100 g Mehl"
+     },
+     {
+      "nr": 4,
+      "text": "Olivenöl und Butter im Dutch Oven erhitzen. Die Beinscheiben von beiden Seiten kräftig goldbraun anbraten, dann herausnehmen und beiseite stellen.",
+      "zutaten": "3 EL Olivenöl, 30 g Butter, 4 Beinscheiben"
+     },
+     {
+      "nr": 5,
+      "text": "Karotten im verbliebenen Bratfett anrösten, dann Sellerie, Zwiebeln und Knoblauch hinzufügen und alles zusammen kurz anbraten.",
+      "zutaten": "2 Karotten, 2 Stangen Sellerie, 2 Zwiebeln, 4 Zehen Knoblauch"
+     },
+     {
+      "nr": 6,
+      "text": "Tomatenmark einrühren und kurz mitrösten lassen, bis es Farbe annimmt.",
+      "zutaten": "2 EL Tomatenmark"
+     },
+     {
+      "nr": 7,
+      "text": "Mit Weißwein ablöschen und leicht einkochen lassen. Dann Kalbsfond und stückige Tomaten hinzufügen. Das Kräuterbouquet in den Topf geben.",
+      "zutaten": "400 ml Weißwein, 250 ml Kalbsfond, 400 g Tomaten, Kräuterbouquet"
+     },
+     {
+      "nr": 8,
+      "text": "Die Beinscheiben zurück in den Dutch Oven legen. Sie sollten größtenteils von Flüssigkeit bedeckt sein. Bei Bedarf etwas Brühe oder Wasser nachgießen.",
+      "zutaten": "4 Beinscheiben"
+     },
+     {
+      "nr": 9,
+      "text": "Deckel auf den Dutch Oven setzen und das Ossobuco bei 180°C für 1,5-2 Stunden schmoren lassen, bis das Fleisch butterzart ist und von alleine vom Knochen fällt. Gelegentlich prüfen, dass die Sauce nicht anbrennt und bei Bedarf etwas Flüssigkeit nachgießen.",
+      "timer_min": 90
+     },
+     {
+      "nr": 10,
+      "text": "In der Zwischenzeit die Gremolata vorbereiten: Petersilie waschen und fein hacken. Knoblauch fein hacken. Zitronenschale abreiben. Alles mit Olivenöl vermengen und mit Salz abschmecken.",
+      "zutaten": "0,5 Bund Petersilie, 1 Zehe Knoblauch, 1 Zitrone (Schale), 2 EL Olivenöl, Salz"
+     },
+     {
+      "nr": 11,
+      "text": "Das Kräuterbouquet aus dem Dutch Oven entfernen. Optional: Den Bratensatz durch ein Sieb streichen für eine glattere Sauce."
+     },
+     {
+      "nr": 12,
+      "text": "Die Beinscheiben auf Tellern anrichten, mit der Sauce übergießen und mit der frischen Gremolata beträufeln. Dazu passt Risotto, Polenta oder Kartoffelpüree.",
+      "zutaten": "Gremolata"
+     }
+    ],
+    "is_favorite": false,
+    "rating": null,
+    "notes": null,
+    "last_cooked_at": null,
+    "created_at": "2026-08-31T07:03:44.663414+00:00",
+    "status": "zum_ausprobieren",
+    "keywords": [
+     "schmorgericht",
+     "italienisch",
+     "kalb",
+     "rind",
+     "beinscheiben",
+     "dutch oven",
+     "grillen",
+     "festtagsessen",
+     "mediterran",
+     "ossobuco",
+     "gremolata",
+     "slow cooking",
+     "knochenmark",
+     "wurzelgemüse",
+     "weißwein"
     ]
    },
    {
@@ -249,6 +347,66 @@
      "pulutan",
      "sizzling platte",
      "party"
+    ]
+   },
+   {
+    "id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "user_id": "40327609-ba9b-4c0c-98d9-6caa045d869e",
+    "title": "Paprika Curry mit Kichererbsen",
+    "description": "Dieses cremige Paprika Curry mit Kichererbsen ist ein köstliches vegetarisches Gericht mit indisch angehauchten Gewürzen. Es lässt sich schnell und einfach zubereiten und ist reich an Geschmack und Aromen.",
+    "source_url": "https://shibaskitchen.de/paprika-curry-mit-kichererbsen/",
+    "source_type": "web",
+    "video_embed_url": null,
+    "image_url": "https://shibaskitchen.de/wp-content/uploads/2022/03/P1210457-769x1024.jpg",
+    "base_servings": 4,
+    "prep_time_min": 10,
+    "cook_time_min": 10,
+    "category": "Hauptgericht",
+    "cuisine": "Indisch",
+    "steps": [
+     {
+      "nr": 1,
+      "text": "Zwiebel und Knoblauch klein schneiden. Tomaten würfeln. Die Paprikas auch möglichst in kleine feine Würfel schneiden.",
+      "zutaten": "1 Zwiebel, 2 Knoblauchzehen, 2 Tomaten, 4 Spitzpaprika"
+     },
+     {
+      "nr": 2,
+      "text": "Zwiebel und Knoblauch in neutralem Öl anschwitzen und mit den Gewürzen und passierten Tomaten ablöschen. Kurz köcheln lassen, damit sich die Aromen entfalten können.",
+      "zutaten": "Öl, Zwiebel, Knoblauch, 0,5 TL Cayennepfeffer, 0,5 TL Kreuzkümmel, 0,5 TL Korianderpulver, Tomaten",
+      "timer_min": 3
+     },
+     {
+      "nr": 3,
+      "text": "Die Spitzpaprikas, Kichererbsen und Kokosmilch dazugeben. Nach Geschmack salzen. Auf mittlerer Hitze köcheln lassen, bis die Paprikas weich sind.",
+      "zutaten": "4 Spitzpaprika, 1 Dose Kichererbsen, 100 ml Kokosmilch, Salz",
+      "timer_min": 10
+     },
+     {
+      "nr": 4,
+      "text": "Wer mag, kann noch frische grüne Chilis dazugeben. Mit Basmatireis oder Naanbrot genießen.",
+      "zutaten": "1 grüne Chilli (optional), Petersilie"
+     }
+    ],
+    "is_favorite": false,
+    "rating": null,
+    "notes": null,
+    "last_cooked_at": null,
+    "created_at": "2026-08-31T07:56:21.875595+00:00",
+    "status": "zum_ausprobieren",
+    "keywords": [
+     "curry",
+     "kichererbsen",
+     "paprika",
+     "vegetarisch",
+     "indisch",
+     "hülsenfrüchte",
+     "kokosmilch",
+     "cremig",
+     "schnell",
+     "gewürze",
+     "spitzpaprika",
+     "hauptgericht",
+     "one-pot"
     ]
    },
    {
@@ -2428,6 +2586,15 @@
   ],
   "ingredients": [
    {
+    "id": "003a6fdc-952b-4cc6-b203-631dbae763c5",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Thymian",
+    "amount": 2,
+    "unit": "Zweige",
+    "is_scalable": true,
+    "sort_order": 15
+   },
+   {
     "id": "0060c6ed-0e46-443a-ac21-a419ab8b2ecf",
     "recipe_id": "f1695812-f2f7-4ec8-94eb-018cf93236fe",
     "name": "Steak",
@@ -2444,6 +2611,15 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 2
+   },
+   {
+    "id": "00c61d38-d109-45d9-81ba-9846c10ecf56",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Tomatenmark",
+    "amount": 2,
+    "unit": "EL",
+    "is_scalable": true,
+    "sort_order": 10
    },
    {
     "id": "00d8f9bd-5b9d-4036-b011-3d80097c2add",
@@ -2905,6 +3081,15 @@
     "sort_order": 20
    },
    {
+    "id": "181dc43e-928c-4271-bab7-1d4799e90a0e",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Knoblauchzehen",
+    "amount": 4,
+    "unit": "Zehe",
+    "is_scalable": true,
+    "sort_order": 9
+   },
+   {
     "id": "1843276f-0bfd-4e42-9a9d-f1a2e91d4c20",
     "recipe_id": "aab79b02-64d2-43a2-9509-468d0fcff919",
     "name": "Gochujang (koreanische Chilipaste)",
@@ -2917,6 +3102,24 @@
     "id": "19c3b489-1d48-415e-86da-3444ade384ab",
     "recipe_id": "e1262225-b96c-4102-93d1-ae52449083f6",
     "name": "Frühlingszwiebeln, geschnitten",
+    "amount": 2,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 6
+   },
+   {
+    "id": "1a42d655-8d3e-4c23-add4-001ca8fd24c2",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "Zwiebel",
+    "amount": 1,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 1
+   },
+   {
+    "id": "1a5664fc-fab3-493b-873c-adff74286285",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Zwiebeln",
     "amount": 2,
     "unit": "Stück",
     "is_scalable": true,
@@ -2993,6 +3196,15 @@
     "unit": "nach Geschmack",
     "is_scalable": false,
     "sort_order": 10
+   },
+   {
+    "id": "229989b7-b275-4a91-8d7d-7bf11b438859",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "Salz",
+    "amount": null,
+    "unit": null,
+    "is_scalable": false,
+    "sort_order": 12
    },
    {
     "id": "22c8a977-695e-42c5-a3ff-cb19f8637613",
@@ -3092,6 +3304,15 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 18
+   },
+   {
+    "id": "26187b7d-f012-45fc-8612-cf2cd0476e0a",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "Tomaten",
+    "amount": 2,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 3
    },
    {
     "id": "261a4319-5602-41ac-85ec-d9bd840c84c8",
@@ -3346,6 +3567,15 @@
     "sort_order": 7
    },
    {
+    "id": "344e5680-dfd1-4be5-967e-38cd449429a7",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Karotten",
+    "amount": 2,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 7
+   },
+   {
     "id": "34543412-352f-41eb-9701-47d2f739306b",
     "recipe_id": "f4029dfa-103e-44e5-971f-96777e107084",
     "name": "Butter",
@@ -3407,6 +3637,15 @@
     "unit": "ml",
     "is_scalable": true,
     "sort_order": 14
+   },
+   {
+    "id": "37fb21c1-29a0-4062-90cc-66474f460f0a",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Weißwein (trocken)",
+    "amount": 400,
+    "unit": "ml",
+    "is_scalable": true,
+    "sort_order": 11
    },
    {
     "id": "3852a4fb-518e-4b16-b765-0a985a4de9d6",
@@ -3515,6 +3754,15 @@
     "unit": "g",
     "is_scalable": true,
     "sort_order": 12
+   },
+   {
+    "id": "3d42e891-021a-4a19-bc17-a6e4280940af",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Pfeffer",
+    "amount": null,
+    "unit": null,
+    "is_scalable": false,
+    "sort_order": 3
    },
    {
     "id": "3e252572-a1e0-4d98-967b-ded9c0143087",
@@ -3679,6 +3927,15 @@
     "sort_order": 22
    },
    {
+    "id": "4842a0f4-f643-456f-bcb8-60f401404979",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Mehl",
+    "amount": 100,
+    "unit": "g",
+    "is_scalable": true,
+    "sort_order": 1
+   },
+   {
     "id": "4893adfd-bf1d-46a7-9395-06b36199c400",
     "recipe_id": "7b47dc81-a55a-449c-86eb-a855e093b443",
     "name": "Joghurt",
@@ -3731,6 +3988,15 @@
     "unit": "g",
     "is_scalable": true,
     "sort_order": 8
+   },
+   {
+    "id": "49d5c328-8936-4e58-a1fd-25323578e9c8",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "Knoblauchzehen",
+    "amount": 2,
+    "unit": "Zehe",
+    "is_scalable": true,
+    "sort_order": 2
    },
    {
     "id": "4a6c5466-8828-4bf5-b139-5892c4a5ec0b",
@@ -3832,6 +4098,15 @@
     "sort_order": 7
    },
    {
+    "id": "4f216219-c74b-4a62-8fed-0ffc38862714",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Petersilie (glatt) für Gremolata",
+    "amount": 0.5,
+    "unit": "Bund",
+    "is_scalable": true,
+    "sort_order": 17
+   },
+   {
     "id": "502712bd-aa53-421b-bf3f-07e30f17de79",
     "recipe_id": "32438ec0-bcd7-48a4-af1b-bbe62307b306",
     "name": "Weiße Zwiebel, gehackt",
@@ -3848,6 +4123,15 @@
     "unit": "TL",
     "is_scalable": true,
     "sort_order": 6
+   },
+   {
+    "id": "508e60f1-0bc0-475c-b54c-24cb401d6ecc",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "Kreuzkümmel",
+    "amount": 0.5,
+    "unit": "TL",
+    "is_scalable": true,
+    "sort_order": 10
    },
    {
     "id": "50ed5561-989f-4fa6-a741-b451e85e9522",
@@ -3875,6 +4159,15 @@
     "unit": "Handvoll",
     "is_scalable": true,
     "sort_order": 12
+   },
+   {
+    "id": "51b678a7-aa50-4213-8114-c6f1c6a05afb",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "Korianderpulver",
+    "amount": 0.5,
+    "unit": "TL",
+    "is_scalable": true,
+    "sort_order": 11
    },
    {
     "id": "520a4fe9-0413-48d3-9258-7f90646ab97c",
@@ -3983,6 +4276,15 @@
     "unit": "g",
     "is_scalable": true,
     "sort_order": 13
+   },
+   {
+    "id": "5a1de4a6-6be5-45d9-af7a-843a95408686",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Zitrone (Bio), abgeriebene Schale",
+    "amount": 1,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 19
    },
    {
     "id": "5b1e7745-9ba6-4408-9d14-e910545dd7c6",
@@ -4300,6 +4602,15 @@
     "sort_order": 3
    },
    {
+    "id": "695f8144-c8e7-4035-aad9-11ea46b2e741",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "Kokosmilch",
+    "amount": 100,
+    "unit": "ml",
+    "is_scalable": true,
+    "sort_order": 5
+   },
+   {
     "id": "6963762b-ccb3-4fae-8778-ea6a3f13e709",
     "recipe_id": "a6868776-eb0e-4a6c-8566-111edf5ac39e",
     "name": "Knoblauchzehen",
@@ -4354,11 +4665,29 @@
     "sort_order": 2
    },
    {
+    "id": "6baaa151-7305-4600-97ea-6ec5549f4d97",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "Spitzpaprika",
+    "amount": 4,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 8
+   },
+   {
     "id": "6bfdc03d-c661-4679-8b45-36bbad3d18d5",
     "recipe_id": "3e661f97-14fe-442f-9246-b1d17d6a3ada",
     "name": "Mayonnaise",
     "amount": 60,
     "unit": "ml",
+    "is_scalable": true,
+    "sort_order": 5
+   },
+   {
+    "id": "6c2a3f8e-be0c-4190-8380-b75dcae455f4",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Butter",
+    "amount": 30,
+    "unit": "g",
     "is_scalable": true,
     "sort_order": 5
    },
@@ -4388,6 +4717,15 @@
     "unit": "Handvoll",
     "is_scalable": true,
     "sort_order": 8
+   },
+   {
+    "id": "6cf6e39b-a719-4eb0-8351-0dc2346b9bfb",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Salz",
+    "amount": null,
+    "unit": null,
+    "is_scalable": false,
+    "sort_order": 2
    },
    {
     "id": "6d7d417a-b6a7-4b19-aa05-de46949ed1f5",
@@ -4453,6 +4791,15 @@
     "sort_order": 6
    },
    {
+    "id": "6fbacb9a-f776-4963-8d1e-6b1b2e6428dd",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Knoblauchzehe für Gremolata",
+    "amount": 1,
+    "unit": "Zehe",
+    "is_scalable": true,
+    "sort_order": 18
+   },
+   {
     "id": "6fd30363-0233-4a49-89ef-9e2584e150f7",
     "recipe_id": "9bfed737-a12e-4159-8e27-cb7cda7b4769",
     "name": "Ghee (oder neutrales Öl)",
@@ -4498,6 +4845,15 @@
     "sort_order": 1
    },
    {
+    "id": "71139938-0d36-4e34-9a19-64ab07bace42",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Olivenöl",
+    "amount": 3,
+    "unit": "EL",
+    "is_scalable": true,
+    "sort_order": 4
+   },
+   {
     "id": "7173e161-25f2-4a13-a18c-1681aac79954",
     "recipe_id": "ef6dcd15-c7d5-4db9-ada3-97e3f9e696ea",
     "name": "Petersilie, gehackt",
@@ -4516,6 +4872,15 @@
     "sort_order": 13
    },
    {
+    "id": "721daf63-9064-477b-a2e5-e29c0ed1bff9",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "Petersilie, gehackt",
+    "amount": null,
+    "unit": null,
+    "is_scalable": false,
+    "sort_order": 6
+   },
+   {
     "id": "725caa2e-9348-409f-9c43-22aece118211",
     "recipe_id": "571069e3-e45b-414e-a9e2-2ff0aa435a9c",
     "name": "Kreuzkümmel",
@@ -4523,6 +4888,15 @@
     "unit": "TL",
     "is_scalable": true,
     "sort_order": 25
+   },
+   {
+    "id": "72f3131b-7a3d-4c49-b6e3-e6db5a3b8869",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Kalbsfond oder Gemüsebrühe",
+    "amount": 250,
+    "unit": "ml",
+    "is_scalable": true,
+    "sort_order": 12
    },
    {
     "id": "739f640a-2b0f-4af4-97f2-f2ef904ea42b",
@@ -4541,6 +4915,15 @@
     "unit": "g",
     "is_scalable": true,
     "sort_order": 11
+   },
+   {
+    "id": "74ce52e1-63fd-46ca-ab97-f404f4476199",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Kalbsbeinscheiben (oder Rinderbeinscheiben), 3-4 cm dick",
+    "amount": 4,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 0
    },
    {
     "id": "759e7048-51a3-4950-9f38-4f744458a264",
@@ -4649,6 +5032,15 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 2
+   },
+   {
+    "id": "7c3db739-3321-48fa-9f87-07513a2cd656",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Olivenöl für Gremolata",
+    "amount": 2,
+    "unit": "EL",
+    "is_scalable": true,
+    "sort_order": 20
    },
    {
     "id": "7cc5aa99-6e7a-4ce0-9285-c28ec4bcc199",
@@ -5803,6 +6195,15 @@
     "sort_order": 7
    },
    {
+    "id": "b6f2e4cb-2d88-45b0-9990-27f41cdf170e",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Stückige Tomaten (aus der Dose)",
+    "amount": 400,
+    "unit": "g",
+    "is_scalable": true,
+    "sort_order": 13
+   },
+   {
     "id": "b6fc3f5f-2488-417c-b09a-afa6cda6877e",
     "recipe_id": "7b47dc81-a55a-449c-86eb-a855e093b443",
     "name": "Zwiebelpulver (für Gemüse)",
@@ -5855,6 +6256,15 @@
     "unit": "Zehe",
     "is_scalable": true,
     "sort_order": 3
+   },
+   {
+    "id": "b992c0e4-628e-4baa-b7e9-75cec1867517",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "grüne Chilli",
+    "amount": 1,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 7
    },
    {
     "id": "b9a7cc70-2177-4b3b-aee7-0abe21d7be01",
@@ -6208,6 +6618,15 @@
     "sort_order": 10
    },
    {
+    "id": "d06b2ff3-982e-4c29-83ad-9bbc596018f5",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "Kichererbsen",
+    "amount": 1,
+    "unit": "Dose",
+    "is_scalable": true,
+    "sort_order": 4
+   },
+   {
     "id": "d108a64d-f1f6-4fbb-8dbe-72d42cdc0dfe",
     "recipe_id": "ef6dcd15-c7d5-4db9-ada3-97e3f9e696ea",
     "name": "Bundzwiebeln inkl. Kraut, in Ringen",
@@ -6224,6 +6643,15 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 3
+   },
+   {
+    "id": "d13e6843-7c40-4f91-8182-d4854e6b00a3",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Lorbeerblätter",
+    "amount": 2,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 16
    },
    {
     "id": "d17175c0-283f-4ad2-b195-9cd7a2dab1f2",
@@ -6314,6 +6742,15 @@
     "unit": "TL",
     "is_scalable": true,
     "sort_order": 7
+   },
+   {
+    "id": "d53b576b-62bc-43fb-bfb1-7294c9b3b6ec",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "neutrales Öl zum Anbraten",
+    "amount": null,
+    "unit": null,
+    "is_scalable": false,
+    "sort_order": 0
    },
    {
     "id": "d53fc826-ae8d-4f64-b5a4-f48784d6a831",
@@ -6433,6 +6870,15 @@
     "sort_order": 0
    },
    {
+    "id": "da680e9b-fc7b-46d5-bf9d-92c06a6e44c5",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Staudensellerie",
+    "amount": 2,
+    "unit": "Stangen",
+    "is_scalable": true,
+    "sort_order": 8
+   },
+   {
     "id": "da99dce8-47b5-4d17-b35a-cde4be3ec021",
     "recipe_id": "ef6dcd15-c7d5-4db9-ada3-97e3f9e696ea",
     "name": "Cherrytomaten, halbiert",
@@ -6494,6 +6940,15 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 19
+   },
+   {
+    "id": "df55e858-8c00-4b0a-9ab5-4f1b868d9a1f",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Rosmarin",
+    "amount": 2,
+    "unit": "Zweige",
+    "is_scalable": true,
+    "sort_order": 14
    },
    {
     "id": "e02abc51-a8f8-49f6-97d0-bc7bbff6baca",
@@ -6926,6 +7381,15 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 3
+   },
+   {
+    "id": "f2ddf042-9101-4b14-af28-ae548843dc1b",
+    "recipe_id": "33ba69cb-6ad3-4df5-be8f-4c5830e96f0c",
+    "name": "Cayennepfeffer",
+    "amount": 0.5,
+    "unit": "TL",
+    "is_scalable": true,
+    "sort_order": 9
    },
    {
     "id": "f363476f-c450-4770-89c2-8a5e760c87b1",
