@@ -1,8 +1,68 @@
 {
- "erstellt_am": "2026-08-31T09:47:35.969Z",
+ "erstellt_am": "2026-09-03T08:04:29.531Z",
  "hinweis": "Automatische Sicherung der Rezeptbase-Datenbank (GitHub Actions, wöchentlich).",
  "tabellen": {
   "recipes": [
+   {
+    "id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "user_id": "40327609-ba9b-4c0c-98d9-6caa045d869e",
+    "title": "Gigantes plaki - gebackene Bohnen in Tomatensauce",
+    "description": "Gigantes plaki ist eine typisch griechische Vorspeise oder Beilage aus weißen Riesenbohnen in würziger Tomatensauce mit Feta im Ofen gebacken. Reich an Ballaststoffen und pflanzlichem Eiweiß, perfekt zu Low Carb-Brot.",
+    "source_url": "https://emea01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.lowcarb.de%2Frezept%2Fgigantes-plaki-bohnen-tomatensauce.html&data=05%7C02%7C%7C32b245a75670411a783c08df098fb854%7C84df9e7fe9f640afb435aaaaaaaaaaaa%7C1%7C0%7C639240185002949991%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=cnnoQpybvA3rXNDjVUzDwsiG31shXSHIkSpqdUXhF0g%3D&reserved=0",
+    "source_type": "web",
+    "video_embed_url": null,
+    "image_url": "https://www.lowcarb.de/files/styles/opengraph/public/assets/image/2021/08/25/gigantes_plaki_-_gebackene_bohnen_in_tomatensauce_portrait.jpg?itok=1QQLuGT3&amp;t=1766829254",
+    "base_servings": 4,
+    "prep_time_min": null,
+    "cook_time_min": 45,
+    "category": "Vorspeise",
+    "cuisine": "Griechisch",
+    "steps": [
+     {
+      "nr": 1,
+      "text": "Den Ofen auf 180°C Unter- und Oberhitze vorheizen."
+     },
+     {
+      "nr": 2,
+      "text": "Zwiebeln und Knoblauch abziehen und fein würfeln. In einer ofenfesten Pfanne im heißen Öl anschwitzen, die Tomaten angießen und die Sauce mit Salz, Pfeffer, Thymian, Paprika und Cayennepfeffer würzen. Mit Zitronensaft abschmecken.",
+      "zutaten": "1-2 Zwiebeln, 2 Knoblauchzehen, 3 EL Olivenöl, 400 ml passierte Tomaten, Salz, Pfeffer, 1 TL Thymian, 1 TL Paprikapulver, 1-2 Msp. Cayennepfeffer, Zitronensaft"
+     },
+     {
+      "nr": 3,
+      "text": "Die abgetropften Riesenbohnen unterheben und den Feta darüber bröckeln. Im vorgeheizten Ofen ca. 45 Minuten backen.",
+      "zutaten": "250 g Riesenbohnen, 100 g Feta",
+      "timer_min": 45
+     },
+     {
+      "nr": 4,
+      "text": "Mit grob gehackter Petersilie garnieren und servieren.",
+      "zutaten": "1-2 EL Petersilie"
+     }
+    ],
+    "is_favorite": false,
+    "rating": null,
+    "notes": null,
+    "last_cooked_at": null,
+    "created_at": "2026-09-03T07:55:52.022126+00:00",
+    "status": "zum_ausprobieren",
+    "keywords": [
+     "griechisch",
+     "bohnen",
+     "hülsenfrüchte",
+     "riesenbohnen",
+     "tomatensauce",
+     "vegetarisch",
+     "glutenfrei",
+     "ofen",
+     "ofengericht",
+     "feta",
+     "käse",
+     "beilage",
+     "vorspeise",
+     "mediterran",
+     "low carb"
+    ]
+   },
    {
     "id": "0bc9291b-2572-4041-a91b-17e76419674e",
     "user_id": "40327609-ba9b-4c0c-98d9-6caa045d869e",
@@ -2586,15 +2646,6 @@
   ],
   "ingredients": [
    {
-    "id": "003a6fdc-952b-4cc6-b203-631dbae763c5",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Thymian",
-    "amount": 2,
-    "unit": "Zweige",
-    "is_scalable": true,
-    "sort_order": 15
-   },
-   {
     "id": "0060c6ed-0e46-443a-ac21-a419ab8b2ecf",
     "recipe_id": "f1695812-f2f7-4ec8-94eb-018cf93236fe",
     "name": "Steak",
@@ -2611,15 +2662,6 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 2
-   },
-   {
-    "id": "00c61d38-d109-45d9-81ba-9846c10ecf56",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Tomatenmark",
-    "amount": 2,
-    "unit": "EL",
-    "is_scalable": true,
-    "sort_order": 10
    },
    {
     "id": "00d8f9bd-5b9d-4036-b011-3d80097c2add",
@@ -2719,6 +2761,15 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 2
+   },
+   {
+    "id": "05f8379d-6db2-46bd-a5b5-b50c04ec2cc1",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Riesenbohnen, Dose",
+    "amount": 250,
+    "unit": "g",
+    "is_scalable": true,
+    "sort_order": 10
    },
    {
     "id": "070645b3-df39-4139-962a-bbd953d1c019",
@@ -2928,6 +2979,15 @@
     "sort_order": 1
    },
    {
+    "id": "0ecc4e0c-8585-4f13-8b07-471f188bb7c0",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Karotten",
+    "amount": 2,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 7
+   },
+   {
     "id": "0ed44351-4cbe-4d98-9cf8-e6787264b93b",
     "recipe_id": "aab79b02-64d2-43a2-9509-468d0fcff919",
     "name": "brauner Zucker",
@@ -3081,15 +3141,6 @@
     "sort_order": 20
    },
    {
-    "id": "181dc43e-928c-4271-bab7-1d4799e90a0e",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Knoblauchzehen",
-    "amount": 4,
-    "unit": "Zehe",
-    "is_scalable": true,
-    "sort_order": 9
-   },
-   {
     "id": "1843276f-0bfd-4e42-9a9d-f1a2e91d4c20",
     "recipe_id": "aab79b02-64d2-43a2-9509-468d0fcff919",
     "name": "Gochujang (koreanische Chilipaste)",
@@ -3097,6 +3148,15 @@
     "unit": "EL",
     "is_scalable": true,
     "sort_order": 8
+   },
+   {
+    "id": "1889b0ef-25c4-4399-984a-fc208a83389b",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Tomaten, passiert",
+    "amount": 400,
+    "unit": "ml",
+    "is_scalable": true,
+    "sort_order": 3
    },
    {
     "id": "19c3b489-1d48-415e-86da-3444ade384ab",
@@ -3115,15 +3175,6 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 1
-   },
-   {
-    "id": "1a5664fc-fab3-493b-873c-adff74286285",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Zwiebeln",
-    "amount": 2,
-    "unit": "Stück",
-    "is_scalable": true,
-    "sort_order": 6
    },
    {
     "id": "1b506f3c-2df2-4f71-8f6a-387e982625c3",
@@ -3180,6 +3231,15 @@
     "sort_order": 11
    },
    {
+    "id": "1fd26ed1-c438-492b-aaf3-71c7bcc033a6",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Rosmarin",
+    "amount": 2,
+    "unit": "Zweige",
+    "is_scalable": true,
+    "sort_order": 14
+   },
+   {
     "id": "1fd5cf59-7640-467e-a808-3f98a5daccab",
     "recipe_id": "4590c193-01e4-4a57-901b-dd43e85cc57a",
     "name": "Getrocknete Tomaten (abgetropft und gewürfelt)",
@@ -3187,6 +3247,15 @@
     "unit": "g",
     "is_scalable": true,
     "sort_order": 16
+   },
+   {
+    "id": "206d68b1-2baa-4b1c-8fce-0cff8a004d69",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Pfeffer",
+    "amount": null,
+    "unit": null,
+    "is_scalable": false,
+    "sort_order": 5
    },
    {
     "id": "21f5b7a0-ca2a-460d-8c0b-b4dccbfd7250",
@@ -3261,6 +3330,15 @@
     "sort_order": 15
    },
    {
+    "id": "248bec95-2b07-4f4e-9497-49f449484fe2",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Staudensellerie",
+    "amount": 2,
+    "unit": "Stangen",
+    "is_scalable": true,
+    "sort_order": 8
+   },
+   {
     "id": "24e38dda-7eec-47da-8d51-13789e94ff7f",
     "recipe_id": "571069e3-e45b-414e-a9e2-2ff0aa435a9c",
     "name": "passierte Tomaten",
@@ -3268,6 +3346,15 @@
     "unit": "ml",
     "is_scalable": true,
     "sort_order": 17
+   },
+   {
+    "id": "250c3417-4361-4001-b58b-e7d8e4a68895",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Mehl",
+    "amount": 100,
+    "unit": "g",
+    "is_scalable": true,
+    "sort_order": 1
    },
    {
     "id": "251f3fdc-f814-4548-a1c4-79238c4ce1fd",
@@ -3367,6 +3454,15 @@
     "unit": "EL",
     "is_scalable": true,
     "sort_order": 3
+   },
+   {
+    "id": "2a72a19a-591e-4672-8012-bf34fc4eca6d",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Petersilie (glatt) für Gremolata",
+    "amount": 0.5,
+    "unit": "Bund",
+    "is_scalable": true,
+    "sort_order": 17
    },
    {
     "id": "2aad4b75-37c3-4a3d-9cf5-ace5cbf5094d",
@@ -3567,15 +3663,6 @@
     "sort_order": 7
    },
    {
-    "id": "344e5680-dfd1-4be5-967e-38cd449429a7",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Karotten",
-    "amount": 2,
-    "unit": "Stück",
-    "is_scalable": true,
-    "sort_order": 7
-   },
-   {
     "id": "34543412-352f-41eb-9701-47d2f739306b",
     "recipe_id": "f4029dfa-103e-44e5-971f-96777e107084",
     "name": "Butter",
@@ -3612,6 +3699,15 @@
     "sort_order": 17
    },
    {
+    "id": "36ae2fd8-d536-4c14-bc21-df0371a89609",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Feta",
+    "amount": 100,
+    "unit": "g",
+    "is_scalable": true,
+    "sort_order": 11
+   },
+   {
     "id": "374efe41-23e8-439a-9d35-a2d2eb7640ef",
     "recipe_id": "e1262225-b96c-4102-93d1-ae52449083f6",
     "name": "Mini-Gurken, dünn geschnitten",
@@ -3637,15 +3733,6 @@
     "unit": "ml",
     "is_scalable": true,
     "sort_order": 14
-   },
-   {
-    "id": "37fb21c1-29a0-4062-90cc-66474f460f0a",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Weißwein (trocken)",
-    "amount": 400,
-    "unit": "ml",
-    "is_scalable": true,
-    "sort_order": 11
    },
    {
     "id": "3852a4fb-518e-4b16-b765-0a985a4de9d6",
@@ -3756,15 +3843,6 @@
     "sort_order": 12
    },
    {
-    "id": "3d42e891-021a-4a19-bc17-a6e4280940af",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Pfeffer",
-    "amount": null,
-    "unit": null,
-    "is_scalable": false,
-    "sort_order": 3
-   },
-   {
     "id": "3e252572-a1e0-4d98-967b-ded9c0143087",
     "recipe_id": "4590c193-01e4-4a57-901b-dd43e85cc57a",
     "name": "Senfpulver",
@@ -3799,6 +3877,15 @@
     "unit": null,
     "is_scalable": false,
     "sort_order": 16
+   },
+   {
+    "id": "3f3dfe20-6908-492f-92ab-c56b6d3f331f",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Zitrone (Bio), abgeriebene Schale",
+    "amount": 1,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 19
    },
    {
     "id": "4135cf08-912b-4340-aeb3-0d2c002ae1dd",
@@ -3925,15 +4012,6 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 22
-   },
-   {
-    "id": "4842a0f4-f643-456f-bcb8-60f401404979",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Mehl",
-    "amount": 100,
-    "unit": "g",
-    "is_scalable": true,
-    "sort_order": 1
    },
    {
     "id": "4893adfd-bf1d-46a7-9395-06b36199c400",
@@ -4098,13 +4176,13 @@
     "sort_order": 7
    },
    {
-    "id": "4f216219-c74b-4a62-8fed-0ffc38862714",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Petersilie (glatt) für Gremolata",
-    "amount": 0.5,
-    "unit": "Bund",
+    "id": "4f9147c0-a1a7-4ac1-bdbd-6efd9dbe05b8",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Cayennepfeffer",
+    "amount": 1.5,
+    "unit": "Msp.",
     "is_scalable": true,
-    "sort_order": 17
+    "sort_order": 8
    },
    {
     "id": "502712bd-aa53-421b-bf3f-07e30f17de79",
@@ -4197,6 +4275,15 @@
     "sort_order": 4
    },
    {
+    "id": "53f8420e-5512-4ab6-936d-f1bf652d911a",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Lorbeerblätter",
+    "amount": 2,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 16
+   },
+   {
     "id": "54eafae6-d9fd-4fa3-90fa-569a03de319d",
     "recipe_id": "46c50581-370b-4d03-aa4d-74eed7f8efe9",
     "name": "Sojasoße",
@@ -4276,15 +4363,6 @@
     "unit": "g",
     "is_scalable": true,
     "sort_order": 13
-   },
-   {
-    "id": "5a1de4a6-6be5-45d9-af7a-843a95408686",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Zitrone (Bio), abgeriebene Schale",
-    "amount": 1,
-    "unit": "Stück",
-    "is_scalable": true,
-    "sort_order": 19
    },
    {
     "id": "5b1e7745-9ba6-4408-9d14-e910545dd7c6",
@@ -4683,15 +4761,6 @@
     "sort_order": 5
    },
    {
-    "id": "6c2a3f8e-be0c-4190-8380-b75dcae455f4",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Butter",
-    "amount": 30,
-    "unit": "g",
-    "is_scalable": true,
-    "sort_order": 5
-   },
-   {
     "id": "6c3799b9-1828-452c-8306-b89c1282fecb",
     "recipe_id": "fd09eb5b-f645-4b04-b6e5-1f9ca6a07107",
     "name": "Salz (für Füllung)",
@@ -4717,15 +4786,6 @@
     "unit": "Handvoll",
     "is_scalable": true,
     "sort_order": 8
-   },
-   {
-    "id": "6cf6e39b-a719-4eb0-8351-0dc2346b9bfb",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Salz",
-    "amount": null,
-    "unit": null,
-    "is_scalable": false,
-    "sort_order": 2
    },
    {
     "id": "6d7d417a-b6a7-4b19-aa05-de46949ed1f5",
@@ -4791,15 +4851,6 @@
     "sort_order": 6
    },
    {
-    "id": "6fbacb9a-f776-4963-8d1e-6b1b2e6428dd",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Knoblauchzehe für Gremolata",
-    "amount": 1,
-    "unit": "Zehe",
-    "is_scalable": true,
-    "sort_order": 18
-   },
-   {
     "id": "6fd30363-0233-4a49-89ef-9e2584e150f7",
     "recipe_id": "9bfed737-a12e-4159-8e27-cb7cda7b4769",
     "name": "Ghee (oder neutrales Öl)",
@@ -4845,13 +4896,13 @@
     "sort_order": 1
    },
    {
-    "id": "71139938-0d36-4e34-9a19-64ab07bace42",
+    "id": "7150e6cc-3d63-4300-8b7c-82e8bc37eb24",
     "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Olivenöl",
-    "amount": 3,
-    "unit": "EL",
+    "name": "Knoblauchzehen",
+    "amount": 4,
+    "unit": "Zehe",
     "is_scalable": true,
-    "sort_order": 4
+    "sort_order": 9
    },
    {
     "id": "7173e161-25f2-4a13-a18c-1681aac79954",
@@ -4890,10 +4941,10 @@
     "sort_order": 25
    },
    {
-    "id": "72f3131b-7a3d-4c49-b6e3-e6db5a3b8869",
+    "id": "736349d7-3ebf-4177-a6df-b10e5c3bfe01",
     "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
     "name": "Kalbsfond oder Gemüsebrühe",
-    "amount": 250,
+    "amount": 500,
     "unit": "ml",
     "is_scalable": true,
     "sort_order": 12
@@ -4915,15 +4966,6 @@
     "unit": "g",
     "is_scalable": true,
     "sort_order": 11
-   },
-   {
-    "id": "74ce52e1-63fd-46ca-ab97-f404f4476199",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Kalbsbeinscheiben (oder Rinderbeinscheiben), 3-4 cm dick",
-    "amount": 4,
-    "unit": "Stück",
-    "is_scalable": true,
-    "sort_order": 0
    },
    {
     "id": "759e7048-51a3-4950-9f38-4f744458a264",
@@ -4971,6 +5013,15 @@
     "sort_order": 1
    },
    {
+    "id": "786ae954-403e-4080-a9bc-d99294c03dc7",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Knoblauchzehen",
+    "amount": 2,
+    "unit": "Zehe",
+    "is_scalable": true,
+    "sort_order": 1
+   },
+   {
     "id": "793ba01d-158b-4991-be61-2e3b323b7a38",
     "recipe_id": "e1262225-b96c-4102-93d1-ae52449083f6",
     "name": "frisches Basilikum, gehackt",
@@ -4998,6 +5049,15 @@
     "sort_order": 11
    },
    {
+    "id": "7a1fb153-71c0-491e-a404-91f4c8c5e9ba",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Rotwein",
+    "amount": 400,
+    "unit": "ml",
+    "is_scalable": true,
+    "sort_order": 11
+   },
+   {
     "id": "7ae88f46-4652-4e80-b53c-78619059d248",
     "recipe_id": "30cf5114-5037-4ebf-a4f8-2b63b4f8f6bc",
     "name": "Milch für Sauce-Konsistenz",
@@ -5005,6 +5065,15 @@
     "unit": null,
     "is_scalable": false,
     "sort_order": 24
+   },
+   {
+    "id": "7af5f323-11b1-4d55-a734-73fc267b34bd",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Zwiebeln",
+    "amount": 2,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 6
    },
    {
     "id": "7b9c7c73-fb8b-444a-8542-23d1c5299378",
@@ -5032,15 +5101,6 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 2
-   },
-   {
-    "id": "7c3db739-3321-48fa-9f87-07513a2cd656",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Olivenöl für Gremolata",
-    "amount": 2,
-    "unit": "EL",
-    "is_scalable": true,
-    "sort_order": 20
    },
    {
     "id": "7cc5aa99-6e7a-4ce0-9285-c28ec4bcc199",
@@ -5115,6 +5175,15 @@
     "sort_order": 4
    },
    {
+    "id": "8227fb6e-d23a-4d06-91e7-e3bda1774db7",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Zwiebeln",
+    "amount": 1.5,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 0
+   },
+   {
     "id": "823f3283-95f3-4c15-a2aa-0a56d928a4b1",
     "recipe_id": "6df2bf72-e8e3-451f-9c4a-ba15e2ca6a76",
     "name": "kleine Zwiebeln (oder 1 große)",
@@ -5185,6 +5254,15 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 11
+   },
+   {
+    "id": "85b043f9-851e-4bf7-aa03-2230fc97d9b6",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Thymian",
+    "amount": 2,
+    "unit": "Zweige",
+    "is_scalable": true,
+    "sort_order": 15
    },
    {
     "id": "85f7e96a-1e4e-405c-9817-e8d4113609a8",
@@ -5275,6 +5353,15 @@
     "unit": "EL",
     "is_scalable": true,
     "sort_order": 4
+   },
+   {
+    "id": "8956ed3e-5dbd-4c1a-bd2a-7c3b571c04cb",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Pfeffer",
+    "amount": null,
+    "unit": null,
+    "is_scalable": false,
+    "sort_order": 3
    },
    {
     "id": "899f70ca-d814-4c05-8b80-1dd5ac486d79",
@@ -5511,6 +5598,15 @@
     "sort_order": 3
    },
    {
+    "id": "9488729c-dec3-4321-b1d5-bfafcb72bd65",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Butter",
+    "amount": 30,
+    "unit": "g",
+    "is_scalable": true,
+    "sort_order": 5
+   },
+   {
     "id": "94f27a3f-5a2d-47f1-83a8-e39d927fecb8",
     "recipe_id": "8ab80a40-27bd-4709-8aa9-a1c93eba3551",
     "name": "Sojasauce",
@@ -5545,6 +5641,15 @@
     "unit": "nach Geschmack",
     "is_scalable": false,
     "sort_order": 4
+   },
+   {
+    "id": "95a57007-9c30-455b-80c1-229a2cc61d3d",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Salz",
+    "amount": null,
+    "unit": null,
+    "is_scalable": false,
+    "sort_order": 2
    },
    {
     "id": "95c4624a-ea95-486f-a703-1dee5feb5ded",
@@ -5617,6 +5722,15 @@
     "unit": "EL",
     "is_scalable": true,
     "sort_order": 1
+   },
+   {
+    "id": "9ad9b577-b9c1-4246-a274-4e6f50007a14",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Knoblauchzehe für Gremolata",
+    "amount": 1,
+    "unit": "Zehe",
+    "is_scalable": true,
+    "sort_order": 18
    },
    {
     "id": "9adfdc9b-4ae9-4832-9913-8563f3d1dede",
@@ -5826,6 +5940,15 @@
     "sort_order": 9
    },
    {
+    "id": "a5324b10-9beb-426a-9e6f-92dc8d2ff276",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Kalbsbeinscheiben (oder Rinderbeinscheiben), 3-4 cm dick",
+    "amount": 4,
+    "unit": "Stück",
+    "is_scalable": true,
+    "sort_order": 0
+   },
+   {
     "id": "a565bc7e-fe46-468e-b003-d19712fd6dbd",
     "recipe_id": "4ddbc287-1c52-4b20-84b8-78b71073c385",
     "name": "Orangensaft oder Zitronensaft",
@@ -5860,6 +5983,15 @@
     "unit": "EL",
     "is_scalable": true,
     "sort_order": 11
+   },
+   {
+    "id": "a78d2d84-ad6d-474a-be36-f7c3d527f2d6",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Tomatenmark",
+    "amount": 2,
+    "unit": "EL",
+    "is_scalable": true,
+    "sort_order": 10
    },
    {
     "id": "a79c8102-9fe2-411b-b200-bb693c478261",
@@ -5923,6 +6055,15 @@
     "unit": "EL",
     "is_scalable": true,
     "sort_order": 2
+   },
+   {
+    "id": "a982a770-4271-482c-bb66-a774d37a0f1f",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Paprikapulver",
+    "amount": 1,
+    "unit": "TL",
+    "is_scalable": true,
+    "sort_order": 7
    },
    {
     "id": "aa1243c7-a990-4b5c-a027-516402b52aee",
@@ -6006,6 +6147,15 @@
     "sort_order": 0
    },
    {
+    "id": "ac927fbf-4151-42a1-964b-8918818a48aa",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Olivenöl",
+    "amount": 3,
+    "unit": "EL",
+    "is_scalable": true,
+    "sort_order": 4
+   },
+   {
     "id": "ae0c60b4-f4af-4d8a-b338-6dee9b82c57a",
     "recipe_id": "bff9b2ca-b864-43e2-acec-f466883197dd",
     "name": "Salz & Pfeffer",
@@ -6084,6 +6234,15 @@
     "amount": null,
     "unit": null,
     "is_scalable": false,
+    "sort_order": 13
+   },
+   {
+    "id": "b168aff1-53ac-480c-b422-d706de7c6456",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Stückige Tomaten (aus der Dose)",
+    "amount": 400,
+    "unit": "g",
+    "is_scalable": true,
     "sort_order": 13
    },
    {
@@ -6195,15 +6354,6 @@
     "sort_order": 7
    },
    {
-    "id": "b6f2e4cb-2d88-45b0-9990-27f41cdf170e",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Stückige Tomaten (aus der Dose)",
-    "amount": 400,
-    "unit": "g",
-    "is_scalable": true,
-    "sort_order": 13
-   },
-   {
     "id": "b6fc3f5f-2488-417c-b09a-afa6cda6877e",
     "recipe_id": "7b47dc81-a55a-449c-86eb-a855e093b443",
     "name": "Zwiebelpulver (für Gemüse)",
@@ -6285,6 +6435,15 @@
     "sort_order": 12
    },
    {
+    "id": "bb4a0b6b-1a23-4e48-afe6-b1ccdc9a44cf",
+    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
+    "name": "Olivenöl für Gremolata",
+    "amount": 2,
+    "unit": "EL",
+    "is_scalable": true,
+    "sort_order": 20
+   },
+   {
     "id": "bb6e13de-6137-4ad5-9ac7-ec65f12a4bf1",
     "recipe_id": "aee4a446-4b45-401c-a147-9e84e109f2e2",
     "name": "Knoblauchzehen",
@@ -6337,6 +6496,15 @@
     "unit": null,
     "is_scalable": false,
     "sort_order": 6
+   },
+   {
+    "id": "bf38b13d-4435-47af-ac77-b4875ccd395e",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Zitronensaft",
+    "amount": null,
+    "unit": null,
+    "is_scalable": false,
+    "sort_order": 9
    },
    {
     "id": "c01e74c1-360f-4001-9750-93d60947c4cb",
@@ -6436,6 +6604,15 @@
     "unit": null,
     "is_scalable": true,
     "sort_order": 15
+   },
+   {
+    "id": "c6b4a40e-1ccd-422e-ba97-557da50ebeb7",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Salz",
+    "amount": null,
+    "unit": null,
+    "is_scalable": false,
+    "sort_order": 4
    },
    {
     "id": "c6f6777d-65cb-463b-8af7-336cedaaaa4c",
@@ -6645,15 +6822,6 @@
     "sort_order": 3
    },
    {
-    "id": "d13e6843-7c40-4f91-8182-d4854e6b00a3",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Lorbeerblätter",
-    "amount": 2,
-    "unit": "Stück",
-    "is_scalable": true,
-    "sort_order": 16
-   },
-   {
     "id": "d17175c0-283f-4ad2-b195-9cd7a2dab1f2",
     "recipe_id": "4590c193-01e4-4a57-901b-dd43e85cc57a",
     "name": "Weizenmehl",
@@ -6798,6 +6966,15 @@
     "sort_order": 8
    },
    {
+    "id": "d744ff11-b9fa-4462-b8ff-9784f2756d7c",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Thymian, getrocknet",
+    "amount": 1,
+    "unit": "TL",
+    "is_scalable": true,
+    "sort_order": 6
+   },
+   {
     "id": "d780119f-57be-4e62-bccd-1b9437b78d56",
     "recipe_id": "4590c193-01e4-4a57-901b-dd43e85cc57a",
     "name": "Scharfe Sauce (z.B. Tabasco)",
@@ -6870,15 +7047,6 @@
     "sort_order": 0
    },
    {
-    "id": "da680e9b-fc7b-46d5-bf9d-92c06a6e44c5",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Staudensellerie",
-    "amount": 2,
-    "unit": "Stangen",
-    "is_scalable": true,
-    "sort_order": 8
-   },
-   {
     "id": "da99dce8-47b5-4d17-b35a-cde4be3ec021",
     "recipe_id": "ef6dcd15-c7d5-4db9-ada3-97e3f9e696ea",
     "name": "Cherrytomaten, halbiert",
@@ -6940,15 +7108,6 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 19
-   },
-   {
-    "id": "df55e858-8c00-4b0a-9ab5-4f1b868d9a1f",
-    "recipe_id": "116bf101-bd6a-41e5-bf3b-ed8f86c45fa4",
-    "name": "Rosmarin",
-    "amount": 2,
-    "unit": "Zweige",
-    "is_scalable": true,
-    "sort_order": 14
    },
    {
     "id": "e02abc51-a8f8-49f6-97d0-bc7bbff6baca",
@@ -7048,6 +7207,15 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 10
+   },
+   {
+    "id": "e56a5d39-8766-4425-9a65-2f7f33d25bf8",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Olivenöl",
+    "amount": 3,
+    "unit": "EL",
+    "is_scalable": true,
+    "sort_order": 2
    },
    {
     "id": "e59dac5c-5687-4023-8b1d-cc096766003b",
@@ -7444,6 +7612,15 @@
     "unit": "Stück",
     "is_scalable": true,
     "sort_order": 0
+   },
+   {
+    "id": "f4e74cbf-0831-4a1c-a78a-fb6013ad2efa",
+    "recipe_id": "02eee5f2-23ef-4de8-9eb3-1e9fecb31850",
+    "name": "Petersilie, grob gehackt",
+    "amount": 1.5,
+    "unit": "EL",
+    "is_scalable": true,
+    "sort_order": 12
    },
    {
     "id": "f50d2ca5-73c7-4bed-a56e-862a8408cd93",
