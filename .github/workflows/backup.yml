@@ -19,19 +19,51 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      # Schreibt backups/rezepte-backup.json (Klartext, per .gitignore
+      # ausgeschlossen) und backups/data.sha256 (Prüfsumme der Nutzdaten).
       - name: Daten sichern
         run: node scripts/backup.mjs
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      - name: Sicherung committen (nur bei Änderung)
+
+      - name: Passphrase prüfen
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Secret BACKUP_PASSPHRASE fehlt - es wird keine Sicherung abgelegt."
+            echo "Anlegen unter: Settings > Secrets and variables > Actions > New repository secret"
+            exit 1
+          fi
+
+      # Vergleicht nur die Nutzdaten-Prüfsumme. Ohne diesen Schritt entstünde
+      # bei jedem Lauf ein Commit, weil die Verschlüsselung bei gleichem
+      # Klartext durch das zufällige Salz ein anderes Ergebnis liefert.
+      - name: Auf Datenänderung prüfen
+        id: pruefen
+        run: |
+          neu="$(cat backups/data.sha256)"
+          alt="$(git show HEAD:backups/data.sha256 2>/dev/null || echo 'noch-keine')"
+          if [ "$neu" = "$alt" ]; then
+            echo "geaendert=nein" >> "$GITHUB_OUTPUT"
+            echo "Nutzdaten unverändert - keine neue Sicherung nötig."
+          else
+            echo "geaendert=ja" >> "$GITHUB_OUTPUT"
+            echo "Nutzdaten geändert - Sicherung wird abgelegt."
+          fi
+
+      - name: Sicherung verschlüsseln und committen
+        if: steps.pruefen.outputs.geaendert == 'ja'
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          gzip -9 -c backups/rezepte-backup.json > backups/rezepte-backup.json.gz
+          openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -in backups/rezepte-backup.json.gz -out backups/rezepte-backup.json.gz.enc -pass env:BACKUP_PASSPHRASE
+          rm -f backups/rezepte-backup.json.gz backups/rezepte-backup.json
           git config user.name "rezeptbase-backup[bot]"
           git config user.email "backup@rezeptbase.invalid"
-          git add backups/
-          if git diff --cached --quiet; then
-            echo "Keine Änderungen – kein Commit nötig."
-          else
-            git commit -m "Automatische Rezept-Sicherung $(date -u +%F)"
-            git push
-          fi
+          git add backups/rezepte-backup.json.gz.enc backups/data.sha256
+          git commit -m "Automatische Rezept-Sicherung $(date -u +%F) (verschlüsselt)"
+          git push

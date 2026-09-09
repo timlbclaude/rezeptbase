@@ -20,6 +20,26 @@ Supabase-Zugangsdaten werden beim Deployment über die Repository-Variablen `SUP
 
 Das Datenbankschema liegt in `supabase/schema.sql`.
 
+## Datensicherung
+
+Der Workflow `.github/workflows/backup.yml` sichert die Datenbank montags und donnerstags. Er liest über `scripts/backup.mjs` alle Tabellen mit dem Service-Role-Key aus und legt das Ergebnis **verschlüsselt** unter `backups/rezepte-backup.json.gz.enc` ab. Die beiden Läufe pro Woche halten zugleich das Supabase-Free-Tier-Projekt aktiv, das sonst nach etwa sieben Tagen ohne Datenbankzugriff pausiert.
+
+Der Klartext-Dump `backups/rezepte-backup.json` enthält sämtliche Rezepte, Zutaten und Einkaufslisten und ist über `.gitignore` ausgeschlossen. Er darf nicht committet werden, solange das Repository öffentlich ist.
+
+Voraussetzung ist das Repository-Secret `BACKUP_PASSPHRASE` (Settings → Secrets and variables → Actions). Fehlt es, bricht der Workflow mit einer deutlichen Fehlermeldung ab. Die Passphrase gehört in einen Passwortmanager – ohne sie ist die Sicherung nicht wiederherstellbar.
+
+Committet wird nur bei tatsächlicher Datenänderung. Verglichen wird die Prüfsumme in `backups/data.sha256`, die allein über die Nutzdaten gebildet wird; der Zeitstempel `erstellt_am` bleibt bewusst aussen vor.
+
+### Sicherung wiederherstellen
+
+Datei aus dem Repository laden und entschlüsseln (openssl ist in Git Bash enthalten):
+
+```bash
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -in rezepte-backup.json.gz.enc -pass pass:DEINE_PASSPHRASE | gzip -d > rezepte-backup.json
+```
+
+Ergebnis ist die JSON-Datei mit den Schlüsseln `erstellt_am`, `hinweis` und `tabellen`.
+
 ## Projektstand
 
 - [x] Phase 0: Anforderungen (siehe ANFORDERUNGEN_RezeptApp.md im Projektordner)

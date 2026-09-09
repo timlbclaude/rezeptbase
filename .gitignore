@@ -23,3 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 package-lock.json
+
+# Datensicherung: Klartext-Dump und Zwischenstufen nie committen – sie
+# enthalten die vollständigen Nutzdaten. Öffentlich abgelegt wird
+# ausschliesslich die verschlüsselte Datei backups/*.json.gz.enc.
+backups/*.json
+backups/*.gz

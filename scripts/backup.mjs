@@ -1,14 +1,19 @@
 // Rezeptbase – automatische Datensicherung
 // Liest alle Tabellen über die Supabase-REST-API (Service-Role-Key, nur in
 // GitHub Actions als Secret hinterlegt) und schreibt sie als eine JSON-Datei
-// nach backups/rezepte-backup.json. Ältere Stände bleiben über die
-// Git-Historie erhalten.
+// nach backups/rezepte-backup.json.
+//
+// WICHTIG: Diese Datei enthält die vollständigen Nutzdaten und ist über
+// .gitignore ausgeschlossen – sie darf nie im öffentlichen Repository landen.
+// Der Workflow .github/workflows/backup.yml verschlüsselt sie und committet
+// ausschliesslich backups/rezepte-backup.json.gz.enc.
 //
 // Benötigte Umgebungsvariablen:
 //   SUPABASE_URL               – z.B. https://xxxx.supabase.co
 //   SUPABASE_SERVICE_ROLE_KEY  – Service-Role-Key (GitHub-Secret, NIE im Code)
 
 import { writeFileSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -66,3 +71,11 @@ for (const [t, order] of Object.entries(TABLES)) {
 mkdirSync('backups', { recursive: true });
 writeFileSync('backups/rezepte-backup.json', JSON.stringify(backup, null, 1) + '\n');
 console.log('Sicherung geschrieben: backups/rezepte-backup.json');
+
+// Prüfsumme ausschliesslich über die Nutzdaten, ohne erstellt_am. Sonst
+// unterscheidet sich jeder Lauf allein durch den Zeitstempel und der Workflow
+// würde auch dann eine neue Sicherung committen, wenn sich an den Rezepten
+// nichts geändert hat.
+const pruefsumme = createHash('sha256').update(JSON.stringify(backup.tabellen)).digest('hex');
+writeFileSync('backups/data.sha256', pruefsumme + '\n');
+console.log(`Prüfsumme der Nutzdaten: ${pruefsumme}`);
