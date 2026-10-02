@@ -4,6 +4,7 @@ import { runWrite, translateError } from '../lib/mutate.js'
 import { notify } from '../lib/notify.js'
 import { READ_ONLY_MSG } from '../lib/roles.js'
 import { onImgError } from '../lib/imageFallback.js'
+import { fileToJpegDataUrl } from '../lib/imageFile.js'
 import Icon from '../components/Icon.jsx'
 
 const CATEGORIES = ['Vorspeise', 'Hauptgericht', 'Beilage', 'Dessert', 'Frühstück', 'Snack', 'Getränk', 'Backen']
@@ -31,23 +32,9 @@ function normalizeSteps(steps) {
 }
 
 // Foto im Browser verkleinern (max. 1568 px, JPEG) → base64 ohne Präfix
-function photoToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    img.onload = () => {
-      const max = 1568
-      const scale = Math.min(1, max / Math.max(img.width, img.height))
-      const c = document.createElement('canvas')
-      c.width = Math.round(img.width * scale)
-      c.height = Math.round(img.height * scale)
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
-      URL.revokeObjectURL(url)
-      resolve(c.toDataURL('image/jpeg', 0.82).split(',')[1])
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Bild konnte nicht gelesen werden')) }
-    img.src = url
-  })
+async function photoToBase64(file) {
+  const dataUrl = await fileToJpegDataUrl(file, 1568, 0.82)
+  return dataUrl.split(',')[1]
 }
 
 export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = false }) {
@@ -57,9 +44,11 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
   const [showManual, setShowManual] = useState(false)
   const [busy, setBusy] = useState(false)
   const [busyPhoto, setBusyPhoto] = useState(false)
+  const [busyImage, setBusyImage] = useState(false)
   const [error, setError] = useState(null)
   const [duplicate, setDuplicate] = useState(null) // vorhandenes Rezept derselben Quelle
   const photoInputRef = useRef(null)
+  const imageInputRef = useRef(null)
   const [preview, setPreview] = useState(() => {
     if (!isEdit) return null
     const r = editRecipe.recipe
@@ -149,6 +138,23 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
     if (photoInputRef.current) photoInputRef.current.value = ''
   }
 
+  // Rezeptbild in der Vorschau/Bearbeiten-Maske setzen oder ersetzen.
+  // Wird verkleinert als data-URL direkt im Rezept gespeichert (gleiches
+  // Muster wie die eingebetteten TikTok-Vorschaubilder).
+  async function handleRecipeImage(file) {
+    if (!file) return
+    setBusyImage(true)
+    setError(null)
+    try {
+      const dataUrl = await fileToJpegDataUrl(file, 1200, 0.8)
+      setPreview((p) => ({ ...p, image_url: dataUrl }))
+    } catch {
+      setError('Das Bild konnte nicht gelesen werden. Bitte versuche ein anderes.')
+    }
+    setBusyImage(false)
+    if (imageInputRef.current) imageInputRef.current.value = ''
+  }
+
   async function handleSave() {
     if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
     setBusy(true)
@@ -172,6 +178,8 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
       cuisine: p.cuisine || null,
       keywords: (p.keywords ?? []).map((k) => String(k).trim()).filter(Boolean),
       steps: stepsJson,
+      // Bild wird in der Maske verwaltet (setzen/ersetzen/entfernen)
+      image_url: p.image_url || null,
     }
 
     let recipeId
@@ -198,7 +206,6 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
             source_url: p.source_url ?? null,
             source_type: p.source_type ?? 'manual',
             video_embed_url: p.video_embed_url ?? null,
-            image_url: p.image_url || null,
           })
           .select('id')
           .single(),
@@ -290,9 +297,50 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
           </div>
         )}
 
-        {preview.image_url && (
-          <img src={preview.image_url} alt={preview.title || ''} onError={onImgError} className="w-full object-cover rounded-[16px] shadow-card mb-5" style={{ height: 150 }} />
-        )}
+        {/* Rezeptbild: anzeigen, wählen/ersetzen, entfernen */}
+        <div className="space-y-1.5 mb-5">
+          <label className={labelCls}>Bild</label>
+          {preview.image_url ? (
+            <img src={preview.image_url} alt={preview.title || ''} onError={onImgError}
+              className="w-full object-cover rounded-[16px] shadow-card" style={{ height: 150 }} />
+          ) : (
+            <div className="w-full grid place-content-center bg-fill text-ink-3 rounded-[16px]" style={{ height: 110 }}>
+              <span className="flex flex-col items-center gap-1.5">
+                <Icon name="utensils" size={24} strokeWidth={1.6} />
+                <span className="text-[12.5px]">Kein Bild</span>
+              </span>
+            </div>
+          )}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleRecipeImage(e.target.files?.[0])}
+          />
+          <div className="flex gap-2 pt-0.5">
+            <button
+              type="button"
+              disabled={busyImage}
+              onClick={() => imageInputRef.current?.click()}
+              className="flex-1 h-[44px] rounded-[12px] bg-card shadow-card text-[14.5px] font-semibold text-tint flex items-center justify-center gap-2 active:opacity-80 transition disabled:opacity-45"
+            >
+              <Icon name="camera" size={16} strokeWidth={2} />
+              {busyImage ? 'Bild wird gelesen …' : preview.image_url ? 'Bild ändern' : 'Bild wählen'}
+            </button>
+            {preview.image_url && (
+              <button
+                type="button"
+                disabled={busyImage}
+                onClick={() => setPreview((p) => ({ ...p, image_url: null }))}
+                className="h-[44px] px-4 rounded-[12px] bg-card shadow-card text-[14.5px] font-semibold text-love flex items-center justify-center gap-1.5 active:opacity-80 transition disabled:opacity-45"
+              >
+                <Icon name="x" size={15} strokeWidth={2.2} />
+                Entfernen
+              </button>
+            )}
+          </div>
+        </div>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
