@@ -1,0 +1,30 @@
+name: Datenumzug Rezeptbilder → Storage
+
+# Einmaliger, idempotenter Umzug eingebetteter Bilder (data-URL) nach Supabase
+# Storage. Manuell auslösen; DRY_RUN=1 zeigt nur, was passieren würde.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Probelauf (nichts schreiben)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Bilder umziehen
+        run: node scripts/migrate-images.ts
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}

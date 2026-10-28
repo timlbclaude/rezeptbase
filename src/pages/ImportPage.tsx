@@ -8,6 +8,7 @@ import { notify } from '../lib/notify.ts'
 import { READ_ONLY_MSG } from '../lib/roles.ts'
 import { onImgError } from '../lib/imageFallback.ts'
 import { fileToJpegDataUrl } from '../lib/imageFile.ts'
+import { currentUserId, isDataUrl, removeRecipeImages, uploadRecipeImage } from '../lib/images.ts'
 import Icon from '../components/Icon.tsx'
 
 // Vorschau-/Bearbeitungszustand des Formulars (Zahlenfelder als Text, solange editiert wird)
@@ -197,8 +198,8 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
   }
 
   // Rezeptbild in der Vorschau/Bearbeiten-Maske setzen oder ersetzen.
-  // Wird verkleinert als data-URL direkt im Rezept gespeichert (gleiches
-  // Muster wie die eingebetteten TikTok-Vorschaubilder).
+  // Bis zum Speichern als data-URL in der Vorschau; beim Speichern wandert es
+  // (wie eingebettete TikTok-/Instagram-Vorschaubilder) in Supabase Storage.
   async function handleRecipeImage(file: File | undefined) {
     if (!file) return
     setBusyImage(true)
@@ -238,8 +239,17 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
       keywords: (p.keywords ?? []).map((k) => String(k).trim()).filter(Boolean),
       // RecipeStep ist strukturell JSON; die DB-Spalte ist als Json typisiert
       steps: stepsJson as unknown as Json,
-      // Bild wird in der Maske verwaltet (setzen/ersetzen/entfernen)
-      image_url: p.image_url || null,
+    }
+    // Bild: externe URL bleibt, data-URL wird nach dem Speichern in den Storage
+    // hochgeladen (nie als data-URL in die Datenbank). Bei Bearbeitung ohne
+    // Bildwechsel bleiben image_url und thumb_url unangetastet.
+    const prevImage = editRecipe?.recipe.image_url ?? null
+    const prevThumb = editRecipe?.recipe.thumb_url ?? null
+    const imageChanged = !editRecipe || (p.image_url || null) !== prevImage
+    const pendingUpload = imageChanged && isDataUrl(p.image_url)
+    if (imageChanged) {
+      fields.image_url = pendingUpload ? null : (p.image_url || null)
+      fields.thumb_url = null
     }
 
     let recipeId: string
@@ -297,6 +307,23 @@ export default function ImportPage({ onDone, onCancel, editRecipe, readOnly = fa
         return
       }
     }
+
+    // Bild in den Storage: grosses Bild + Thumbnail, danach Adressen eintragen.
+    // Ein Fehler hier lässt das Rezept bestehen (ohne Bild) und meldet sich per Toast.
+    if (pendingUpload && p.image_url) {
+      try {
+        const userId = await currentUserId()
+        if (!userId) throw new Error('keine Sitzung')
+        const urls = await uploadRecipeImage(userId, recipeId, p.image_url)
+        const imgRes = await runWrite(supabase.from('recipes').update(urls).eq('id', recipeId), { silent: true })
+        if (!imgRes.ok) throw new Error(imgRes.message ?? 'update')
+      } catch (e) {
+        console.error('[Rezeptbase] Bild-Upload:', e)
+        notify('Das Rezept wurde gespeichert, das Bild konnte aber nicht hochgeladen werden.')
+      }
+    }
+    // Altes Bild im Storage aufräumen, wenn es ersetzt oder entfernt wurde
+    if (editRecipe && imageChanged) await removeRecipeImages([prevImage, prevThumb])
     setBusy(false)
     onDone(recipeId)
   }

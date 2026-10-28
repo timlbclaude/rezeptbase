@@ -3,6 +3,7 @@ import type { Collection, CookHistoryEntry, Ingredient, Recipe, RawStep } from '
 import type { TablesUpdate } from '../lib/database.types.ts'
 import type { Selection } from '../components/CartSheet.tsx'
 import { stepText } from '../lib/types.ts'
+import { currentUserId, removeRecipeFolder } from '../lib/images.ts'
 import { supabase } from '../lib/supabase.ts'
 import { runWrite } from '../lib/mutate.ts'
 import { notify } from '../lib/notify.ts'
@@ -606,8 +607,12 @@ export default function RecipeDetail({ recipeId, onBack, onDeleted, readOnly = f
                   <button
                     onClick={async () => {
                       if (readOnly) { notify(READ_ONLY_MSG, 'info'); return }
+                      const userId = await currentUserId()
                       const { ok } = await runWrite(supabase.from('recipes').delete().eq('id', recipeId))
-                      if (ok) onDeleted()
+                      if (ok) {
+                        if (userId) await removeRecipeFolder(userId, recipeId)
+                        onDeleted()
+                      }
                     }}
                     className="font-semibold text-love"
                   >

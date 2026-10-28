@@ -63,6 +63,10 @@ create index shopping_user_idx on public.shopping_list (user_id, created_at);
 -- Phase 4: Kochstatus
 alter table public.recipes add column if not exists status text not null default 'zum_ausprobieren' check (status in ('zum_ausprobieren','gekocht'));
 
+-- Phase 5 Teil 2 (28.10.2026): Rezeptbilder in Supabase Storage. thumb_url zeigt auf das
+-- Listenbild (max. 320 px), image_url auf das grosse Bild (max. 1200 px) oder eine externe URL.
+alter table public.recipes add column if not exists thumb_url text;
+
 -- V1.3 Paket C: Sammlungen (eigene Rezept-Gruppen wie „Gäste-Menüs")
 create table public.collections (
   id uuid primary key default gen_random_uuid(),
@@ -278,3 +282,41 @@ create policy "import_log select" on public.import_log
 -- (Security Review 28.10.2026)
 revoke all on all tables in schema public from anon;
 alter default privileges for role postgres in schema public revoke all on tables from anon;
+
+-- ---------------------------------------------------------------------------
+-- Storage: Bucket recipe-images für Rezeptbilder (28.10.2026).
+-- Öffentlich lesbar – die Pfade enthalten Nutzer- und Rezept-UUID und sind damit
+-- nicht erratbar; schreiben, ändern, löschen und auflisten darf ein Konto nur in
+-- seinem eigenen Ordner <user_id>/... Ablage je Rezept:
+--   <user_id>/<recipe_id>/<kennung>.jpg        grosses Bild (max. 1200 px)
+--   <user_id>/<recipe_id>/<kennung>-thumb.jpg  Listenbild (max. 320 px)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('recipe-images', 'recipe-images', true, 2097152, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update set public = excluded.public,
+  file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "recipe images insert own" on storage.objects;
+create policy "recipe images insert own" on storage.objects
+  for insert to authenticated
+  with check ( bucket_id = 'recipe-images'
+               and (storage.foldername(name))[1] = (select auth.uid())::text );
+
+drop policy if exists "recipe images update own" on storage.objects;
+create policy "recipe images update own" on storage.objects
+  for update to authenticated
+  using ( bucket_id = 'recipe-images'
+          and (storage.foldername(name))[1] = (select auth.uid())::text )
+  with check ( bucket_id = 'recipe-images'
+               and (storage.foldername(name))[1] = (select auth.uid())::text );
+
+drop policy if exists "recipe images delete own" on storage.objects;
+create policy "recipe images delete own" on storage.objects
+  for delete to authenticated
+  using ( bucket_id = 'recipe-images'
+          and (storage.foldername(name))[1] = (select auth.uid())::text );
+
+drop policy if exists "recipe images select own" on storage.objects;
+create policy "recipe images select own" on storage.objects
+  for select to authenticated
+  using ( bucket_id = 'recipe-images'
+          and (storage.foldername(name))[1] = (select auth.uid())::text );

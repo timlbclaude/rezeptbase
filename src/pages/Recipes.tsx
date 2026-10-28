@@ -10,6 +10,7 @@ import { buildHaystack, matchesQuery } from '../lib/search.ts'
 import { parseHash as parseHashPure, buildListHash } from '../lib/route.ts'
 import { runWrite } from '../lib/mutate.ts'
 import { notify } from '../lib/notify.ts'
+import { currentUserId, removeRecipeFolder } from '../lib/images.ts'
 import { READ_ONLY_MSG } from '../lib/roles.ts'
 import ImportPage from './ImportPage.tsx'
 import RecipeDetail from './RecipeDetail.tsx'
@@ -234,8 +235,10 @@ export default function Recipes({ session, readOnly = false }: RecipesProps) {
     const ids = Object.keys(selIds).filter((k) => selIds[k])
     if (ids.length === 0 || bulkBusy) return
     setBulkBusy(true)
+    const userId = await currentUserId()
     const { ok } = await runWrite(supabase.from('recipes').delete().in('id', ids))
     if (ok) {
+      if (userId) await Promise.all(ids.map((id) => removeRecipeFolder(userId, id)))
       setRecipes((rs) => rs.filter((r) => !selIds[r.id]))
       setCollLinks((ls) => ls.filter((l) => !selIds[l.recipe_id]))
       notify(`${ids.length} ${ids.length === 1 ? 'Rezept' : 'Rezepte'} gelöscht`, 'success')
