@@ -23,7 +23,7 @@ jobs:
       # Schreibt backups/rezepte-backup.json (Klartext, per .gitignore
       # ausgeschlossen) und backups/data.sha256 (Prüfsumme der Nutzdaten).
       - name: Daten sichern
-        run: node scripts/backup.mjs
+        run: node scripts/backup.ts
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

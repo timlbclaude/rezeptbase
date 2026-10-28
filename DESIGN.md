@@ -202,7 +202,7 @@ Sanft und kurz, mit iOS-typischem Easing `cubic-bezier(0.22, 1, 0.36, 1)`:
 
 ## 9. Icons
 
-- Eigene SVG-Icon-Komponente `src/components/Icon.jsx` (Strichzeichnungen im
+- Eigene SVG-Icon-Komponente `src/components/Icon.tsx` (Strichzeichnungen im
   Lucide-Stil), aktuell **36 Icons** (u.a. `search`, `heart`, `star`,
   `clock`, `chefHat`, `flame`, `bag`, `sliders`, `eye`/`eyeOff`).
 - **Keine Emojis** als UI-Symbole — durchgängig diese SVG-Icons, damit die
