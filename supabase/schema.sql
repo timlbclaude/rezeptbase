@@ -250,3 +250,31 @@ drop policy if exists "cook_history delete" on public.cook_history;
 create policy "cook_history delete" on public.cook_history
   for delete to authenticated
   using ( (select auth.uid()) = user_id );
+
+-- ---------------------------------------------------------------------------
+-- Import-Protokoll: ein Eintrag pro Aufruf der Edge Function import-recipe.
+-- Grundlage für das Stundenlimit (20 Importe pro Nutzer). Geschrieben und
+-- gezählt wird ausschliesslich serverseitig mit dem Service-Role-Key; Nutzer
+-- dürfen ihre eigenen Einträge nur lesen.
+create table public.import_log (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create index import_log_user_zeit_idx on public.import_log (user_id, created_at desc);
+
+alter table public.import_log enable row level security;
+
+drop policy if exists "import_log select" on public.import_log;
+create policy "import_log select" on public.import_log
+  for select to authenticated
+  using ( (select auth.uid()) = user_id );
+
+-- ---------------------------------------------------------------------------
+-- Nicht angemeldete Besucher (Rolle anon) brauchen keinen Tabellenzugriff.
+-- RLS lässt sie ohnehin nichts sehen; hier werden die Supabase-Standardrechte
+-- zusätzlich entzogen, auch für künftig angelegte Tabellen.
+-- (Security Review 28.10.2026)
+revoke all on all tables in schema public from anon;
+alter default privileges for role postgres in schema public revoke all on tables from anon;

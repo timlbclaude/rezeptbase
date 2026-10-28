@@ -1,9 +1,30 @@
 // Rezeptbase – Edge Function "import-recipe"
 // Nimmt eine URL (YouTube/Shorts/TikTok/Kochseite) oder Rohtext entgegen,
 // holt den Inhalt und lässt Claude ein strukturiertes Rezept extrahieren.
+//
+// Seit v15 (Werkstatt 5.1, schliesst Befund 02 aus dem Vibecoding-Lehrgang):
+//   1. Identität: nur angemeldete Nutzer (auth.getUser) – sonst 401.
+//   2. Limit: höchstens 20 Importe pro Nutzer und Stunde (import_log) – sonst 429.
+//   3. CORS: nur noch die eigene App-Herkunft statt "*".
+//
+// Seit v16 (Security Review 28.10.2026):
+//   4. Limit sperrt auch dann, wenn die Zählung fehlschlägt (fail-closed).
+//   5. Technische Fehlerdetails (z.B. der Anthropic-API) gehen ins Log,
+//      nicht mehr an die App.
+
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const ANON_KEY     = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const IMPORT_LIMIT_PRO_STUNDE = 20;
+
+// Fehler, deren Text für die Nutzerin/den Nutzer gedacht ist und unverändert
+// in der App angezeigt werden darf. Alle anderen Fehler werden nur geloggt.
+class UserError extends Error {}
 
 const CORS = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://timlbclaude.github.io",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
@@ -39,7 +60,7 @@ async function fetchRetry(
         : (e as Error)?.message ?? "Netzwerkfehler";
     }
   }
-  throw new Error(`Seite nicht erreichbar (${lastErr})`);
+  throw new UserError(`Seite nicht erreichbar (${lastErr})`);
 }
 
 // Modell-Kette: Wunschmodell aus Secret ANTHROPIC_MODEL, optionales Zweitmodell
@@ -288,7 +309,7 @@ async function fetchTikTok(rawUrl: string) {
   const url = await resolveTikTokUrl(rawUrl);
   const oe = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
   if (!oe.ok) {
-    throw new Error(`TikTok-Video nicht erreichbar (HTTP ${oe.status}). Ist der Link öffentlich?`);
+    throw new UserError(`TikTok-Video nicht erreichbar (HTTP ${oe.status}). Ist der Link öffentlich?`);
   }
   const j = await oe.json();
   const caption = j.title ?? "";
@@ -402,7 +423,7 @@ async function fetchWebsite(url: string) {
     },
     redirect: "follow",
   }, 15000, 2);
-  if (!res.ok) throw new Error(`Seite nicht erreichbar (HTTP ${res.status})`);
+  if (!res.ok) throw new UserError(`Seite nicht erreichbar (HTTP ${res.status})`);
   const html = await res.text();
 
   const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
@@ -513,7 +534,7 @@ async function extractWithClaude(content: string, image?: { data: string; media_
     messages: [{ role: "user", content: userContent }],
   });
   const toolUse = (data.content ?? []).find((b: any) => b.type === "tool_use");
-  if (!toolUse) throw new Error("Claude hat kein strukturiertes Rezept geliefert");
+  if (!toolUse) throw new UserError("Claude hat kein strukturiertes Rezept geliefert");
   return toolUse.input;
 }
 
@@ -581,6 +602,42 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Nur POST erlaubt" }, 405);
 
   try {
+    // ---- Schicht 1: Identität. Ein gültiges Ticket reicht nicht mehr –
+    // dahinter muss ein angemeldeter Nutzer stehen. Der öffentliche
+    // anon-Key allein fällt hier durch.
+    const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const { data: { user } = { user: null } } =
+      await createClient(SUPABASE_URL, ANON_KEY).auth.getUser(jwt);
+    if (!user) {
+      return json({ error: "Bitte zuerst anmelden – der Import steht nur angemeldeten Nutzern offen." }, 401);
+    }
+
+    // ---- Schicht 2: Limit. Zählen und protokollieren serverseitig
+    // (service_role, umgeht RLS – Clients können das Protokoll nicht fälschen).
+    // Schlägt die Zählung fehl, wird gesperrt statt durchgewunken.
+    const admin = createClient(SUPABASE_URL, SERVICE_KEY);
+    const seit = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count, error: zaehlFehler } = await admin
+      .from("import_log")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("created_at", seit);
+    if (zaehlFehler) {
+      console.error("import_log (Zählung):", zaehlFehler.message);
+      return json({ error: "Der Import ist gerade nicht verfügbar. Bitte versuche es später noch einmal." }, 503);
+    }
+    if ((count ?? 0) >= IMPORT_LIMIT_PRO_STUNDE) {
+      return json({
+        error: "Stundenlimit erreicht (" + IMPORT_LIMIT_PRO_STUNDE +
+          " Importe pro Stunde). Bitte versuche es etwas später noch einmal.",
+      }, 429);
+    }
+    const { error: logFehler } = await admin.from("import_log").insert({ user_id: user.id });
+    if (logFehler) {
+      console.error("import_log (Eintrag):", logFehler.message);
+      return json({ error: "Der Import ist gerade nicht verfügbar. Bitte versuche es später noch einmal." }, 503);
+    }
+
     const { url, text, image_base64, image_type, keywords_for } = await req.json();
 
     // Backfill-Modus: nur Schlagworte für ein bestehendes Rezept
@@ -686,6 +743,9 @@ Deno.serve(async (req) => {
       },
     });
   } catch (e) {
-    return json({ error: (e as Error).message ?? "Unbekannter Fehler" }, 500);
+    if (e instanceof UserError) return json({ error: e.message }, 500);
+    // Technische Details (API-Antworten, fehlende Secrets) nur ins Log
+    console.error("import-recipe:", (e as Error)?.message ?? e);
+    return json({ error: "Import fehlgeschlagen. Bitte versuche es später noch einmal." }, 500);
   }
 });
