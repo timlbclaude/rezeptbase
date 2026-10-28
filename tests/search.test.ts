@@ -101,6 +101,19 @@ check('„dessert" findet das Cookie-Croissant', () =>
   assert.ok(treffer('dessert').includes('cookie')))
 check('„hähnchen scharf" findet das Korean Fried Chicken', () =>
   assert.ok(treffer('hähnchen scharf').includes('kfc')))
+console.log('\nWortanfang beim Tippen (Befund 28.10.2026):')
+
+check('„Spä" findet Spaghetti al limone (Wortanfang ab dem 1. Zeichen)', () =>
+  assert.ok(treffer('Spä').includes('spaghetti')))
+check('„Spä" bringt kein Hähnchen-Rezept', () =>
+  assert.ok(!treffer('Spä').includes('marryMe') && !treffer('Spä').includes('kfc')))
+check('„s" findet Spaghetti und Hörnlisalat (Wortanfang), nie „nichts"', () =>
+  assert.ok(treffer('s').includes('spaghetti') && treffer('s').includes('hoernli')))
+check('„hörn" findet den Hörnlisalat (ab 4 Zeichen greift zusätzlich das Teigwaren-Lexikon)', () =>
+  assert.ok(treffer('hörn').includes('hoernli')))
+check('„pa" findet Frühlingspasta (Keyword pasta) und Spaghetti (Keyword), nicht Zwiebeln', () =>
+  assert.ok(treffer('pa').includes('fruehlingspasta') && !treffer('pa').includes('zwiebeln')))
+
 check('„xyz123" findet nichts', () =>
   assert.deepEqual(treffer('xyz123'), []))
 

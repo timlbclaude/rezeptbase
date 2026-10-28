@@ -79,14 +79,16 @@ export function buildHaystack(r: SearchableRecipe): Haystack {
 
 // Trifft eine Variante auf ein einzelnes Wort des Rezepts zu?
 // - exakt gleich
-// - Wort beginnt mit der Variante (ab 4 Zeichen: „huhn" → „hühnerbrühe")
+// - Wort beginnt mit der Variante – ab dem ERSTEN Zeichen, damit die Liste
+//   schon beim Tippen eingrenzt („spä" → „Spätzli", „huhn" → „hühnerbrühe");
+//   bis V1.3 galt das erst ab 4 Zeichen, und „Spä" meldete „nichts gefunden"
 // - Variante steckt im Wort (ab 5 Zeichen: „salat" → „nudelsalat")
 // - Tippfehler-Toleranz: OHNE h identisch, nur als GANZES Wort
 //   („spägetti" → „spaghetti", aber nie mehr „hühner" → „brauner")
 function tokenMatches(token: string, v: string): boolean {
   if (token === v) return true
   if (v.length >= 5 && token.includes(v)) return true
-  if (v.length === 4 && token.startsWith(v)) return true
+  if (token.startsWith(v)) return true
   if (v.length >= 5 && stripH(token) === stripH(v)) return true
   return false
 }
