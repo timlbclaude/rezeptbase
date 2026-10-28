@@ -1,6 +1,6 @@
 # 🍳 Rezeptbase
 
-Persönliche Rezeptdatenbank mit KI-Import: Link einfügen (YouTube, Shorts, Kochseiten) → Zutaten und Kochschritte werden automatisch extrahiert und gespeichert. Mit Portionsrechner, Suche, Favoriten und Einkaufsliste.
+Persönliche Rezeptdatenbank mit KI-Import: Link einfügen (YouTube, Shorts, TikTok, Instagram, Kochseiten), Rezept fotografieren oder Text einfügen → Zutaten und Kochschritte werden automatisch extrahiert und im Prüfformular bestätigt. Mit Portionsrechner, Kochmodus mit Timern, Suche, Favoriten, Sammlungen und geräteübergreifender Einkaufsliste.
 
 ## Architektur
 
@@ -42,9 +42,24 @@ Ergebnis ist die JSON-Datei mit den Schlüsseln `erstellt_am`, `hinweis` und `ta
 
 ## Projektstand
 
-- [x] Phase 0: Anforderungen (siehe ANFORDERUNGEN_RezeptApp.md im Projektordner)
-- [ ] Phase 1: Fundament (Repo, Supabase, Auth, Deployment)
-- [ ] Phase 2: Import & Rezeptansicht
-- [ ] Phase 3: Portionsrechner
-- [ ] Phase 4: Suche/Filter, Favoriten, Einkaufsliste
-- [ ] Phase 5: Feinschliff & PWA
+Stand 28.10.2026 – die App ist produktiv im Einsatz. Ein vollständiges Fachkonzept (Architektur, Datenmodell, Funktionen, Betrieb) liegt im Claude-Projekt «Rezeptbase».
+
+- [x] Phase 0: Anforderungen (ANFORDERUNGEN_RezeptApp.md im Projektordner)
+- [x] Phase 1: Fundament (Repo, Supabase, Auth, Deployment) – 09.08.2026
+- [x] Phase 2: Import & Rezeptansicht – 09.08.2026
+- [x] Phase 3: Portionsrechner – 09.08.2026
+- [x] Phase 4: Suche/Filter, Favoriten, Einkaufsliste – 09.08.2026
+- [x] Phase 5: Feinschliff & PWA, Redesign «2a Nativ» (siehe `DESIGN.md`) – 13.08.2026
+- [x] Ausbaupaket V1.1: Bearbeiten, Dark Mode, Filter/Sortierung, Teilen, Foto- und Instagram-Import, Offline-Cache (`KONZEPT_Ausbaupaket.md`) – 14.08.2026
+- [x] V1.3 Pakete A–C: Suche, Fehlerbehandlung, Deep Links, Mengenformatierung, Barrierefreiheit, Warengruppen, Sammlungen, Mehrfach-Timer (`KONZEPT_Testbericht_V1.3.md`) – 19.08.2026
+- [x] Betrieb: CI-Gate (Lint + Tests), verschlüsselte Datensicherung, Kochverlauf, Lazy-Load, Mehrfachauswahl – 30.08.2026 / 09.09.2026
+- [x] Security Review: Edge Function v16 (Identität, Stundenlimit fail-closed, CORS, keine Fehlerdetails an den Client), `anon` ohne Tabellenrechte – 28.10.2026
+
+### Bewusst nicht umgesetzt
+
+Wochenplaner, Vorratsverwaltung, Haushaltsfreigabe, Sprachsteuerung, Nährwerte, Parallelkochen, PDF-Druckansicht, Registrierung in der App.
+
+### Offen (nur nach Rückbestätigung)
+
+- Bilder in Supabase Storage mit Thumbnails statt data-URLs in `recipes.image_url`
+- TypeScript-Migration
